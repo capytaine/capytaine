@@ -88,8 +88,10 @@ def mean_of_product(a, b):
 def remap_waterline_pressure(amplitude, pressure_waterline_total, relative_elevation_waterline, mesh_waterline, box_mesh):
     """Mean waterline pressure of the sea made of all the waves, spread on the faces of a box around the mean waterline.
 
-    The waterline term of the mean drift force is a lineic force <p h> per unit length of waterline, where p is the
-    pressure of the waterline strip and h the relative elevation of the free surface. It is spread in the vertical
+    The waterline term of the mean drift force is a lineic force <p w> per unit length of waterline, where p is the
+    pressure of the waterline strip and w = h / sqrt(1 - n_z²) the width of the strip along the hull, with h the relative
+    elevation of the free surface and n the normal of the hull. The walls of the box are vertical (n_z = 0), so w = h
+    here: the lineic force is <p h>. It is spread in the vertical
     coordinate z around the mean waterline along a semi-elliptic profile of half-width |h| (the amplitude of h):
 
         <p>(z) = 2 <p h> / (pi |h|) * sqrt(1 - (z/|h|)^2)    for |z| < |h|,

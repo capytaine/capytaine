@@ -235,6 +235,11 @@ class DifferenceFrequencyExpansion(PerturbationExpansion):
             np.broadcast_to(x2, (nb_waves, nb_waves) + field_shape),
         ])
 
+    @classmethod
+    def first_order(cls, amplitudes):
+        """First-order quantity: zero order 0 and order 2, and `amplitudes` of shape `(W, *S)` as order 1."""
+        return cls([0.0, amplitudes, 0.0])
+
     @property
     def nb_waves(self):
         return self.coefficients[1].shape[0]

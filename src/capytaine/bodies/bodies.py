@@ -25,7 +25,7 @@ import xarray as xr
 
 from capytaine.meshes.abstract_meshes import AbstractMesh
 from capytaine.meshes.meshes import Mesh
-from capytaine.meshes.geometry import connected_components, connected_components_of_waterline, compute_faces_normals
+from capytaine.meshes.geometry import connected_components, connected_components_of_waterline
 from capytaine.bodies.dofs import (
         AbstractDof,
         TranslationDof,
@@ -36,7 +36,7 @@ from capytaine.bodies.dofs import (
         )
 from capytaine.bodies.abstract_bodies import AbstractBody
 from capytaine.bodies.hydrostatics import _FloatingBodyHydrostaticsMixin
-from capytaine.tools.perturbation_expansion import PerturbationExpansion, DifferenceFrequencyExpansion
+from capytaine.tools.perturbation_expansion import DifferenceFrequencyExpansion
 
 LOG = logging.getLogger(__name__)
 
@@ -281,6 +281,16 @@ class FloatingBody(_FloatingBodyHydrostaticsMixin, AbstractBody):
                     second_order[(j, k)] = (motion_jk, gradient_jk)
         return motion, gradient, second_order
 
+    def _dofs_on_waterline(self):
+        """Motion of the dofs at the middles of the edges of the waterline of `self.mesh.merged()`.
+
+        Returns
+        -------
+        motion: array of shape (nb_dofs, nb_edges_waterline, 3)
+        """
+        middle_edges_waterline = self.mesh.merged().middle_edges_waterline
+        return np.array([dof.evaluate_motion_at_points(middle_edges_waterline) for dof in self.dofs.values()])
+
     def _displacement_expansions(self, first_order_motion_amplitude):
         """Displacement u = Σ_j q_j δu_j + 1/2 Σ_jk q_j q_k δ²u_jk at the faces centers, and its gradient.
 
@@ -296,10 +306,14 @@ class FloatingBody(_FloatingBodyHydrostaticsMixin, AbstractBody):
         Expansion = DifferenceFrequencyExpansion
         q = np.asarray(first_order_motion_amplitude)
         motion, gradient, second_order = self._dofs_on_faces()
-        u = Expansion([0.0, np.sum(q[:, :, None, None] * motion[None], axis=1), 0.0])
-        grad_u = Expansion([0.0, np.sum(q[:, :, None, None, None] * gradient[None], axis=1), 0.0])
+
+        # First order motions
+        u = Expansion.first_order(np.sum(q[:, :, None, None] * motion[None], axis=1))
+        grad_u = Expansion.first_order(np.sum(q[:, :, None, None, None] * gradient[None], axis=1))
+
+        # Add second-order motions
         for (j, k), (motion_jk, gradient_jk) in second_order.items():
-            q_jk = Expansion([0.0, q[:, j], 0.0]) * Expansion([0.0, q[:, k], 0.0])  # Field ()
+            q_jk = Expansion.first_order(q[:, j]) * Expansion.first_order(q[:, k])
             u = u + 0.5 * q_jk * motion_jk
             grad_u = grad_u + 0.5 * q_jk * gradient_jk
         return u, grad_u
@@ -335,31 +349,26 @@ class FloatingBody(_FloatingBodyHydrostaticsMixin, AbstractBody):
         return (pressure.expand_dims(-2) * normal_dof_amplitude_on_face).sum(-1)
 
     def integrate_pressure_on_waterline(self, pressure):
-        """Integrate a lineic pressure along the mean waterline.
+        """Integrate a lineic pressure along the mean waterline, up to second order. Experimental.
 
         Parameters
         ----------
-        pressure: array of shape (nb_edges_waterline,) or DifferenceFrequencyExpansion
-            Integrated pressure over the height of the strip between the mean waterline and the free surface
-            (force per unit length), at the middle of the edges of the waterline of `self.mesh.merged()`.
-            It is projected on the horizontal normal of the faces of the waterline, scaled by 1/sqrt(1 - nz²).
+        pressure: DifferenceFrequencyExpansion
+            Pressure integrated over the width (along the hull) of the strip between the mean waterline and the
+            free surface: force per unit length of waterline, at the middle of the edges of the waterline of
+            `self.mesh.merged()`, with field (nb_edges_waterline,).
+            It is projected on the normals of the faces containing the edges of the waterline.
 
         Returns
         -------
-        dict[str, complex] or DifferenceFrequencyExpansion
-            For an array, the forces as a dictionary with the names of the dofs as keys.
-            For a DifferenceFrequencyExpansion (experimental), an expansion with field (nb_dofs,).
+        DifferenceFrequencyExpansion
+            The generalized forces, with field (nb_dofs,).
         """
         mesh = self.mesh.merged()  # The waterline data of symmetric meshes is computed on the merged mesh.
-        normal = compute_faces_normals(mesh.vertices, mesh.faces_waterline)
-        normal_waterline = normal/np.sqrt(1-normal[:, -1]**2)[:, None]  # (nb_edges_waterline, 3)
-        motion = np.array([dof.evaluate_motion_at_points(mesh.middle_edges_waterline) for dof in self.dofs.values()])
+        motion = self._dofs_on_waterline()
         # The minus sign is because we want the force of the fluid on the body and not the force of the body on the fluid.
-        normal_dof_amplitude_on_waterline = -np.sum(motion * normal_waterline, axis=-1) * mesh.length_edges_waterline  # (nb_dofs, nb_edges_waterline)
-        if isinstance(pressure, PerturbationExpansion):
-            return (pressure.expand_dims(-2) * normal_dof_amplitude_on_waterline).sum(-1)
-        else:
-            return dict(zip(self.dofs.keys(), np.sum(pressure * normal_dof_amplitude_on_waterline, axis=-1)))
+        normal_dof_amplitude_on_waterline = -np.sum(motion * mesh.normals_edges_waterline, axis=-1) * mesh.length_edges_waterline  # (nb_dofs, nb_edges_waterline)
+        return (pressure.expand_dims(-2) * normal_dof_amplitude_on_waterline).sum(-1)
 
     def keep_only_dofs(self, *args, **kwargs):
         raise NotImplementedError("`keep_only_dofs` has been removed. Consider using `body = body.with_only_dofs(['dof_name'])` instead.")

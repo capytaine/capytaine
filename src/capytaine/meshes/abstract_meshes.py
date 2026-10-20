@@ -23,7 +23,7 @@ import numpy as np
 
 from capytaine.meshes.surface_integrals import SurfaceIntegralsMixin
 from capytaine.tools.deprecation_handling import _get_water_depth
-from capytaine.meshes.geometry import connected_components, connected_components_of_waterline
+from capytaine.meshes.geometry import connected_components, connected_components_of_waterline, compute_faces_normals
 
 LOG = logging.getLogger(__name__)
 
@@ -192,7 +192,8 @@ class AbstractMesh(SurfaceIntegralsMixin, ABC):
                 edges_waterline.append(list(set_indices))
                 faces_waterline.append(self.faces[k,:])
 
-        return np.array(edges_waterline), np.array(faces_waterline)
+        # Reshape to keep two dimensions when the mesh has no waterline.
+        return np.array(edges_waterline, dtype=int).reshape(-1, 2), np.array(faces_waterline, dtype=int).reshape(-1, self.faces.shape[1])
 
     @property
     def nb_edges_waterline(self) -> int:
@@ -223,6 +224,11 @@ class AbstractMesh(SurfaceIntegralsMixin, ABC):
         """Return an array with the middles of the edges of the water line with shape (nb_edges_waterline, 3)."""
         edges = self.edges_waterline
         return (self.vertices[edges[:, 0], :] + self.vertices[edges[:, 1], :]) / 2
+
+    @cached_property
+    def normals_edges_waterline(self):
+        """Return an array with the normals of the faces containing the edges of the water line with shape (nb_edges_waterline, 3)."""
+        return compute_faces_normals(self.vertices, self.faces_waterline).reshape(-1, 3)
 
     def waterline_integral(self, data):
         """Returns integral of given data along the water line.

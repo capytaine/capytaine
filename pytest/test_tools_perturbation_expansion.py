@@ -353,6 +353,15 @@ def test_difference_frequency_shapes_and_indexing():
         x[1]
 
 
+def test_difference_frequency_first_order():
+    a = np.arange(6.0).reshape(3, 2) * (1 + 1j)
+    x = DifferenceFrequencyExpansion.first_order(a)
+    assert isinstance(x, DifferenceFrequencyExpansion)
+    assert np.all(x.coefficients[0] == 0.0) and x.coefficients[0].shape == (2,)
+    assert np.all(x.coefficients[1] == a)
+    assert np.all(x.coefficients[2] == 0.0) and x.coefficients[2].shape == (3, 3, 2)
+
+
 def test_difference_frequency_errors():
     x = random_wave_expansion((4, 3, 3), seed=0)
     with pytest.raises(ValueError, match="real"):

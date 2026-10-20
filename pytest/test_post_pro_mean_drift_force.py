@@ -20,7 +20,8 @@ import pytest
 import capytaine as cpt
 import capytaine_test_helpers as helpers
 from capytaine.io.xarray import problems_from_dataset, kochin_data_array
-from capytaine.post_pro.mean_drift_force import far_field_mean_drift_force, near_field_mean_drift_force, _near_field_hydrodynamics
+from capytaine.post_pro.mean_drift_force import far_field_mean_drift_force, near_field_mean_drift_force
+from capytaine.tools.perturbation_expansion import DifferenceFrequencyExpansion as Expansion
 
 
 def test_far_field_mean_drift_force():
@@ -237,7 +238,7 @@ def test_period_equivalent_omega_mean_drift_force():
     assert np.allclose(np.flip(mdf_period.values, axis=0), mdf_omega)
 
 
-def test_near_field_hydrodynamics_of_generic_dofs():
+def test_near_field_mean_drift_force_of_generic_dofs():
     # Smoke test for dofs that are not rigid body motions (no reference value).
     bending = cpt.CustomDof(motion=lambda x: np.array([0.0, 0.0, x[0]**2]),
                             gradient_of_motion=lambda x: np.array([[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [2*x[0], 0.0, 0.0]]))
@@ -250,7 +251,7 @@ def test_near_field_hydrodynamics_of_generic_dofs():
     rao = xr.DataArray(rng.normal(size=(1, 2, 3)) + 1j * rng.normal(size=(1, 2, 3)),
                        dims=["omega", "wave_direction", "radiating_dof"],
                        coords={"omega": [1.0], "wave_direction": [0.0, np.pi/2], "radiating_dof": list(body.dofs)})
-    force, pressure_hull, pressure_waterline, relative_elevation = _near_field_hydrodynamics(rao, results, solver)
+    force = near_field_mean_drift_force(rao, results, solver)["near_field_mean_drift_force"].values
     assert force.shape == (1, 2, 2, 3)
     assert np.all(np.isfinite(force))
     np.testing.assert_allclose(force, np.conj(np.swapaxes(force, 1, 2)), atol=1e-10)
@@ -290,13 +291,100 @@ def test_mean_drift_force_from_exported_pressures_of_fixed_body():
 
     p_wl = mdf["pressure_waterline_total"].transpose("wave_direction", "waterline_segment").values
     h_wl = mdf["relative_elevation_waterline"].transpose("wave_direction", "waterline_segment").values
+    strip_width = h_wl / np.sqrt(1 - body.mesh.merged().normals_edges_waterline[:, 2]**2)
+    waterline = body.integrate_pressure_on_waterline(Expansion.first_order(p_wl) * Expansion.first_order(strip_width)).coefficients[2]
     for k in range(2):
         for l in range(2):
             hull = body.integrate_pressure(mdf["pressure_hull_mean_drift"].isel(wave_direction_k=k, wave_direction_l=l).values)
-            waterline = body.integrate_pressure_on_waterline(
-                    (p_wl[k] * np.conjugate(h_wl[l]) + np.conjugate(p_wl[l]) * h_wl[k])/4
-                    )
             force = mdf["near_field_mean_drift_force"].isel(wave_direction_k=k, wave_direction_l=l).values
-            np.testing.assert_allclose(
-                    np.array(list(hull.values())) + np.array(list(waterline.values())),
-                    force, rtol=1e-10, atol=1e-10)
+            np.testing.assert_allclose(np.array(list(hull.values())) + waterline[k, l], force, rtol=1e-10, atol=1e-10)
+
+
+def test_near_field_mean_drift_force_of_submerged_body():
+    # No waterline: the waterline term and the waterline outputs are empty.
+    mesh = cpt.mesh_sphere(radius=0.5, center=(0.0, 0.0, -1.5), resolution=(4, 4))
+    body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs(only=["Heave", "Pitch"], rotation_center=(0.0, 0.0, -1.5)))
+    solver = helpers.solver()
+    test_matrix = xr.Dataset(coords={'omega': [1.0], 'wave_direction': [0.0], 'radiating_dof': list(body.dofs)})
+    results = solver.solve_all(problems_from_dataset(test_matrix, body))
+    rao = xr.DataArray(np.full((1, 1, 2), 1.0 + 0.5j), dims=["omega", "wave_direction", "radiating_dof"],
+                       coords={"omega": [1.0], "wave_direction": [0.0], "radiating_dof": list(body.dofs)})
+    mdf = near_field_mean_drift_force(rao, results, solver, output_pressure=True)
+    assert np.all(np.isfinite(mdf["near_field_mean_drift_force"].values))
+    assert mdf["pressure_waterline_total"].sizes["waterline_segment"] == 0
+
+
+def test_near_field_mean_drift_force_of_array_dofs():
+    mesh = helpers.small_sphere_mesh()
+    body = cpt.FloatingBody(mesh=mesh, dofs={"Heave": np.tile([0.0, 0.0, 1.0], (mesh.nb_faces, 1))})
+    solver = helpers.solver()
+    test_matrix = xr.Dataset(coords={'omega': [1.0], 'wave_direction': [0.0], 'radiating_dof': ["Heave"]})
+    results = solver.solve_all(problems_from_dataset(test_matrix, body))
+    rao = xr.DataArray(np.ones((1, 1, 1), dtype=complex), dims=["omega", "wave_direction", "radiating_dof"],
+                       coords={"omega": [1.0], "wave_direction": [0.0], "radiating_dof": ["Heave"]})
+    with pytest.raises(NotImplementedError):
+        near_field_mean_drift_force(rao, results, solver)
+
+
+def roll_pitch_yaw_matrix(angles):
+    """Rotation matrix R = R_roll R_pitch R_yaw (same convention as WAMIT)."""
+    roll, pitch, yaw = angles
+    R_roll = np.array([[1.0, 0.0, 0.0],
+                       [0.0, np.cos(roll), -np.sin(roll)],
+                       [0.0, np.sin(roll), np.cos(roll)]])
+    R_pitch = np.array([[np.cos(pitch), 0.0, np.sin(pitch)],
+                        [0.0, 1.0, 0.0],
+                        [-np.sin(pitch), 0.0, np.cos(pitch)]])
+    R_yaw = np.array([[np.cos(yaw), -np.sin(yaw), 0.0],
+                      [np.sin(yaw), np.cos(yaw), 0.0],
+                      [0.0, 0.0, 1.0]])
+    return R_roll @ R_pitch @ R_yaw
+
+
+def exact_hydrostatic_force_on_displaced_body(mesh, motion, rotation_center, rho, g):
+    """Generalized forces of the six rigid body dofs (moments around the fixed `rotation_center`)
+    of the hydrostatic pressure on the part below z=0 of `mesh` displaced by the finite real `motion`."""
+    R = roll_pitch_yaw_matrix(motion[3:])
+    vertices = (mesh.vertices - rotation_center) @ R.T + rotation_center + motion[:3]
+    # 2x2 Gauss-Legendre is exact for the quadratic integrand of the moments on planar faces.
+    wet = cpt.Mesh(vertices=vertices, faces=mesh.faces).immersed_part().with_quadrature("Gauss-Legendre 2")
+    pressure = -rho * g * wet.quadrature_points[0][:, :, 2]
+    dofs = cpt.rigid_body_dofs(rotation_center=rotation_center)
+    return np.array([
+        wet.surface_integral(-pressure * np.sum(dof.evaluate_motion_at_quad_points(wet) * wet.faces_normals[:, None, :], axis=-1))
+        for dof in dofs.values()
+        ])
+
+
+def test_hydrostatic_force_on_moving_body_against_displaced_mesh():
+    # Hydrostatic pressure on the hull and in the strip at the waterline, without waves.
+    # The mean over a period of the exact force on the displaced body is compared with the diagonal of the QTF.
+    # The hydrostatic part of `near_field_mean_drift_force` is reimplemented below (pressure on the hull, strip
+    # pressure and width at the waterline), since the function cannot be called without the hydrodynamics.
+    rho, g = 1000.0, 9.81
+    rotation_center = np.array([0.4, -0.3, -0.6])
+    full_mesh = cpt.mesh_parallelepiped(size=(3.0, 2.0, 2.0), resolution=(6, 4, 4), center=(0.0, 0.0, -0.5))
+    mesh = full_mesh.immersed_part()
+    body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs(rotation_center=rotation_center))
+    rng = np.random.default_rng(4)
+    q = rng.normal(size=(1, 6)) + 1j * rng.normal(size=(1, 6))
+
+    u, _ = body._displacement_expansions(q)
+    # Plain arrays are order-0 constants in the operations with expansions.
+    hydrostatic_pressure = -rho * g * mesh.faces_centers[:, 2]
+    gradient_hydrostatic_pressure = np.array([0.0, 0.0, -rho * g])
+    pressure = hydrostatic_pressure + (gradient_hydrostatic_pressure * u).sum(-1)
+    dofs_on_waterline = body._dofs_on_waterline()
+    vertical_motion_waterline = np.sum(q[:, :, None] * dofs_on_waterline[None, :, :, 2], axis=1)
+    pressure_waterline = Expansion.first_order(-rho * g * vertical_motion_waterline / 2)  # mean over the strip
+    strip_width_waterline = Expansion.first_order(-vertical_motion_waterline / np.sqrt(1 - mesh.merged().normals_edges_waterline[:, 2]**2))
+    force = body.integrate_pressure_on_moving_body(pressure, q) + body.integrate_pressure_on_waterline(pressure_waterline * strip_width_waterline)
+
+    def mean_second_order_force(eps):
+        phases = np.linspace(0.0, 2*np.pi, 32, endpoint=False)
+        forces = [exact_hydrostatic_force_on_displaced_body(full_mesh, eps * np.real(q[0] * np.exp(-1j * t)), rotation_center, rho, g) for t in phases]
+        still_water = exact_hydrostatic_force_on_displaced_body(full_mesh, np.zeros(6), rotation_center, rho, g)
+        return (np.mean(forces, axis=0) - still_water) / eps**2  # The error is of order eps**2
+
+    exact = mean_second_order_force(1e-3)
+    np.testing.assert_allclose(force.coefficients[2][0, 0], exact, atol=1e-4 * np.max(np.abs(exact)))

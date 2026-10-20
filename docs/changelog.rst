@@ -32,7 +32,7 @@ Major changes
 * The ``mesh=True`` option of :func:`~capytaine.io.xarray.assemble_dataset` and :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` now stores the full mesh of the hull (and lid, if any) and the dofs of the body in the dataset, as the data variables ``mesh_vertices``, ``mesh_faces_center``, ``lid_mesh_vertices``, ``lid_mesh_faces_center``, ``dof_motions`` and ``dof_gradient_of_motions``, instead of just the number of faces.
   See :doc:`user_manual/post_pro` for more details.
 
-* Add :func:`~capytaine.post_pro.mean_drift_force.near_field_mean_drift_force` to compute the mean drift force (for now for a single rigid body). (:pull:`871`)
+* Add :func:`~capytaine.post_pro.mean_drift_force.near_field_mean_drift_force` to compute the mean drift force, for any dofs of a single :class:`~capytaine.bodies.bodies.FloatingBody` (rigid body motions or generalized modes with a gradient of motion). (:pull:`871`)
   This function returns a dataset with a ``near_field_mean_drift_force`` variable of shape ``(nb_freq, nb_wave_direction, nb_wave_direction, nb_dofs)``.
   Optional parameter ``output_pressure`` allows to return the mean drift pressure field on the hull as ``pressure_hull_mean_drift``, of shape ``(nb_freq, nb_wave_direction, nb_wave_direction, nb_hull_faces)``,
   as well as the first-order fields on the waterline from which the waterline term of the force is computed: ``pressure_waterline_total`` and ``relative_elevation_waterline``, of shape ``(nb_freq, nb_wave_direction, nb_waterline_segments)``, and the waterline segments ``mesh_waterline``.
@@ -40,6 +40,8 @@ Major changes
 
 Bug fixes
 ~~~~~~~~~
+
+* For a mesh without waterline (e.g. a fully submerged body), ``edges_waterline`` and ``faces_waterline`` are now empty 2D arrays (of shape ``(0, 2)`` and ``(0, 4)``) instead of 1D arrays, so that the computations on the waterline do not fail.
 
 * Fix the conversion of a :class:`~capytaine.tools.block_circulant_matrices.BlockDiagonalMatrix` to a NumPy array, that was raising an ``AttributeError``. (:pull:`958`)
 
@@ -108,13 +110,14 @@ Internals
   Its subclass :class:`~capytaine.tools.perturbation_expansion.DifferenceFrequencyExpansion`
   holds complex amplitudes for several wave components at once, and computes the full
   difference-frequency QTF of an expression in one evaluation.
-  The hydrodynamic part of :func:`~capytaine.post_pro.mean_drift_force.near_field_mean_drift_force` is now computed with it,
+  First-order quantities are built with :meth:`~capytaine.tools.perturbation_expansion.DifferenceFrequencyExpansion.first_order`.
+  :func:`~capytaine.post_pro.mean_drift_force.near_field_mean_drift_force` is now computed with :class:`~capytaine.tools.perturbation_expansion.DifferenceFrequencyExpansion`,
   from the unexpanded integral of the pressure on the moving body, for any dofs
   with a gradient of motion, with the help of
   :meth:`~capytaine.bodies.bodies.FloatingBody.integrate_pressure_on_moving_body`
   and
   :meth:`~capytaine.bodies.bodies.FloatingBody.integrate_pressure_on_waterline`.
-  Add the property ``middle_edges_waterline`` to the meshes.
+  Add the properties ``middle_edges_waterline`` and ``normals_edges_waterline`` to the meshes.
 
 * Add the private methods ``BEMSolver._compute_potential_from_sources`` and ``BEMSolver._compute_potential_gradient_from_sources``, evaluating the potential or its gradient from bare source distributions (given with the mesh and the Green function parameters, without a result object).
   The sources can have leading batch axes, in which case the influence matrix is built only once and multiplied by all the source distributions at once.
