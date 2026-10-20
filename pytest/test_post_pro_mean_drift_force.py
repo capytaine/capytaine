@@ -326,6 +326,45 @@ def test_near_field_mean_drift_force_of_array_dofs():
         near_field_mean_drift_force(rao, results, solver)
 
 
+def near_field_mean_drift_force_with_imposed_motion(body, motion_amplitude, wave_direction):
+    """Near-field QTF of `body` at omega = 1 for an imposed motion `motion_amplitude[i_dir, i_dof]`."""
+    solver = helpers.solver()
+    test_matrix = xr.Dataset(coords={'omega': [1.0], 'wave_direction': wave_direction, 'radiating_dof': list(body.dofs)})
+    results = solver.solve_all(problems_from_dataset(test_matrix, body))
+    rao = xr.DataArray(motion_amplitude[None], dims=["omega", "wave_direction", "radiating_dof"],
+                       coords={"omega": [1.0], "wave_direction": wave_direction, "radiating_dof": list(body.dofs)})
+    return near_field_mean_drift_force(rao, results, solver)["near_field_mean_drift_force"].isel(omega=0)
+
+
+def test_near_field_mean_drift_force_of_multibody_of_single_body():
+    body = cpt.FloatingBody(mesh=helpers.small_sphere_mesh(), dofs=cpt.rigid_body_dofs(rotation_center=(0.1, 0.0, -0.2)), name="a")
+    rng = np.random.default_rng(5)
+    motion_amplitude = rng.normal(size=(2, 6)) + 1j * rng.normal(size=(2, 6))
+    wave_direction = [0.0, np.pi/3]
+    force = near_field_mean_drift_force_with_imposed_motion(body, motion_amplitude, wave_direction)
+    multibody_force = near_field_mean_drift_force_with_imposed_motion(cpt.Multibody([body]), motion_amplitude, wave_direction)
+    assert list(multibody_force.influenced_dof.values) == [f"a__{dof}" for dof in body.dofs]
+    np.testing.assert_allclose(multibody_force.values, force.values, rtol=1e-10, atol=1e-10)
+
+
+def test_near_field_mean_drift_force_of_mirrored_bodies():
+    # Two bodies mirror images of each other through the plane yOz, with waves along y:
+    # the problem is symmetric, so the forces on the two bodies are mirror images of each other,
+    # interactions and second-order motion of each body included.
+    # Planar faces: the first-order interactions of meshes with non-planar faces (e.g. a sphere) are only symmetric up to ~1e-4.
+    mesh = cpt.mesh_parallelepiped(size=(1.0, 1.2, 1.0), resolution=(3, 3, 3), center=(-2.0, 0.1, -0.5)).immersed_part()
+    a = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs(rotation_center=(-2.0, 0.0, -0.2)), name="a")
+    b = cpt.FloatingBody(mesh=mesh.mirrored("yOz"), dofs=cpt.rigid_body_dofs(rotation_center=(2.0, 0.0, -0.2)), name="b")
+    # Under the mirror symmetry x -> -x, the translations transform as vectors and the rotations as pseudo-vectors.
+    mirror = np.array([-1.0, 1.0, 1.0, 1.0, -1.0, -1.0])  # Surge, Sway, Heave, Roll, Pitch, Yaw
+    rng = np.random.default_rng(6)
+    motion_amplitude_a = rng.normal(size=(1, 6)) + 1j * rng.normal(size=(1, 6))
+    motion_amplitude = np.concatenate([motion_amplitude_a, mirror * motion_amplitude_a], axis=1)
+    force = near_field_mean_drift_force_with_imposed_motion(a + b, motion_amplitude, [np.pi/2]).values[0, 0, :]
+    assert np.abs(force[:6]).max() > 0.0
+    np.testing.assert_allclose(force[6:], mirror * force[:6], rtol=1e-8, atol=1e-8 * np.abs(force).max())
+
+
 def roll_pitch_yaw_matrix(angles):
     """Rotation matrix R = R_roll R_pitch R_yaw (same convention as WAMIT)."""
     roll, pitch, yaw = angles

@@ -32,7 +32,7 @@ Major changes
 * The ``mesh=True`` option of :func:`~capytaine.io.xarray.assemble_dataset` and :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` now stores the full mesh of the hull (and lid, if any) and the dofs of the body in the dataset, as the data variables ``mesh_vertices``, ``mesh_faces_center``, ``lid_mesh_vertices``, ``lid_mesh_faces_center``, ``dof_motions`` and ``dof_gradient_of_motions``, instead of just the number of faces.
   See :doc:`user_manual/post_pro` for more details.
 
-* Add :func:`~capytaine.post_pro.mean_drift_force.near_field_mean_drift_force` to compute the mean drift force, for any dofs of a single :class:`~capytaine.bodies.bodies.FloatingBody` (rigid body motions or generalized modes with a gradient of motion). (:pull:`871`)
+* Add :func:`~capytaine.post_pro.mean_drift_force.near_field_mean_drift_force` to compute the mean drift force, for any dofs of a :class:`~capytaine.bodies.bodies.FloatingBody` or a :class:`~capytaine.bodies.multibodies.Multibody` (rigid body motions or generalized modes with a gradient of motion). (:pull:`871`)
   This function returns a dataset with a ``near_field_mean_drift_force`` variable of shape ``(nb_freq, nb_wave_direction, nb_wave_direction, nb_dofs)``.
   Optional parameter ``output_pressure`` allows to return the mean drift pressure field on the hull as ``pressure_hull_mean_drift``, of shape ``(nb_freq, nb_wave_direction, nb_wave_direction, nb_hull_faces)``,
   as well as the first-order fields on the waterline from which the waterline term of the force is computed: ``pressure_waterline_total`` and ``relative_elevation_waterline``, of shape ``(nb_freq, nb_wave_direction, nb_waterline_segments)``, and the waterline segments ``mesh_waterline``.
