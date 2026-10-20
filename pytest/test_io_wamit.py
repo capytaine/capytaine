@@ -453,7 +453,6 @@ def test_export_wamit_8_while_exporting_everything(tmpdir):
 
 @lru_cache
 def dataset_with_near_field_mean_drift_force():
-    from capytaine.io.xarray import problems_from_dataset
     mesh = helpers.small_sphere_mesh()
     body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs(), center_of_mass=(0,0,0))
     solver = helpers.solver()
@@ -461,11 +460,9 @@ def dataset_with_near_field_mean_drift_force():
     test_matrix = xr.Dataset(coords={
             'wavenumber': [1.0, 2.0], 'wave_direction': wave_direction, 'radiating_dof': list(body.dofs.keys())
         })
-    pbs = problems_from_dataset(test_matrix, body)
-    results = solver.solve_all(pbs)
-    dataset = cpt.assemble_dataset(results)
+    dataset = solver.fill_dataset(test_matrix, body, keep_details=True)
     rao = cpt.post_pro.rao(dataset)
-    mdf = near_field_mean_drift_force(rao, results, solver)
+    mdf = near_field_mean_drift_force(rao, dataset, body, solver=solver)
     return xr.merge([dataset, mdf])
 
 

@@ -13,6 +13,8 @@
 # limitations under the License.
 """Computation of the mean drift force."""
 
+import logging
+
 import numpy as np
 import xarray as xr
 
@@ -23,8 +25,11 @@ from capytaine.bem.airy_waves import (
 from capytaine.bodies.bodies import FloatingBody
 from capytaine.bodies.multibodies import Multibody
 from capytaine.bodies.dofs import AbstractDof
-from capytaine.bem.problems_and_results import DiffractionResult, RadiationResult
+from capytaine.bem.problems_and_results import DiffractionProblem
 from capytaine.tools.perturbation_expansion import DifferenceFrequencyExpansion as Expansion
+
+
+LOG = logging.getLogger(__name__)
 
 
 ####################################################################################################
@@ -163,7 +168,7 @@ def _merge_far_field_mean_drift_variables(dataset):
 # Near field
 ####################################################################################################
 
-def near_field_mean_drift_force(first_order_motion_amplitude, results, solver, *, output_pressure=False):
+def near_field_mean_drift_force(first_order_motion_amplitude, dataset, body, *, solver=None, output_pressure=False):
     """Compute the mean drift force using the near field formulation.
 
     The force is the second-order part of the integral of the pressure on the moving body and along
@@ -172,20 +177,27 @@ def near_field_mean_drift_force(first_order_motion_amplitude, results, solver, *
     different wave directions) are at difference frequency zero, where the second-order potential does
     not contribute to the pressure.
 
-    Current assumptions: all results are for the same :class:`~capytaine.bodies.bodies.FloatingBody`
-    or :class:`~capytaine.bodies.multibodies.Multibody`, the same rho and g.
+    The first-order fields are evaluated from a dataset computed with the indirect method and
+    ``keep_details=True`` (e.g. ``solver.fill_dataset(test_matrix, body, keep_details=True)``),
+    which stores the pressures and the source distributions on the body.
     Several wavelengths and dofs are taken into account at once.
+    Only datasets with a single value of rho, g and water depth, and without forward speed, are supported.
 
     Parameters
     ----------
     first_order_motion_amplitude : xarray DataArray
         The motion RAO, as returned by :func:`capytaine.post_pro.rao.rao`.
-    results : list of LinearPotentialFlowResult
-        The diffraction and radiation results used to compute the RAO, for all the wavelengths
-        and wave directions of interest.
-    solver : BEMSolver
-        The solver used to compute the potential and its gradient on the hull at the requested
-        points.
+    dataset : xarray Dataset
+        The dataset of the diffraction and radiation problems used to compute the RAO, for all the
+        wavelengths and wave directions of interest, with the source distributions on the body
+        (``sources_diffraction``, ``sources_radiation``, and on the lid if any).
+    body : FloatingBody or Multibody
+        The body of the dataset.
+    solver : BEMSolver, optional
+        The solver evaluating the potential and its gradient from the source distributions.
+        It should use the same Green function as the one used to compute the dataset (a warning
+        is raised when the settings stored in the dataset differ).
+        Default: ``BEMSolver()``.
     output_pressure : bool, optional
         If True, also return the second-order pressure field on the hull and the first-order
         fields on the waterline from which the waterline term of the force is computed.
@@ -224,69 +236,224 @@ def near_field_mean_drift_force(first_order_motion_amplitude, results, solver, *
         where ``w = h / sqrt(1 - n_z²)`` is the width of the strip along the hull and ``n`` the normal of the
         face containing the segment of the waterline.
     """
-    body = results[0].body
-    if isinstance(body, Multibody):
-        body = body.as_FloatingBody  # Same mesh and dofs (`DofOnSubmesh`), with the methods of FloatingBody.
-    if not isinstance(body, FloatingBody):
+    solver, floating_body, freq_type, motion_amplitude, dataset = _prepare_near_field_inputs(
+            first_order_motion_amplitude, dataset, body, solver)
+    mesh = floating_body.mesh.merged()  # The waterline data of symmetric meshes is computed on the merged mesh.
+    rho = float(dataset.coords["rho"])
+    g = float(dataset.coords["g"])
+
+    # Still water (order 0): hydrostatic pressure on the hull and geometry of the waterline
+    p0 = -rho * g * mesh.faces_centers[:, 2]  # (nb_faces,)
+    grad_p0 = np.array([0.0, 0.0, -rho * g])
+    vertical_dofs_motion_waterline = floating_body._dofs_on_waterline()[:, :, 2]  # (nb_dofs, nb_edges_waterline)
+    inclination_waterline = np.sqrt(1 - mesh.normals_edges_waterline[:, 2]**2)  # (nb_edges_waterline,)
+
+    outputs_per_freq = []
+    for i_freq in range(dataset.sizes[freq_type]):
+        # One frequency, all the wave directions at once: the expansions have the wave directions in their orders 1
+        # and 2, and the shapes in the comments below are their fields.
+        ds_at_freq = dataset.isel({freq_type: i_freq})
+        omega = float(ds_at_freq.coords["omega"])
+        q = Expansion.first_order(motion_amplitude[i_freq, :, :])  # order 1, (nb_dofs,)
+        p1_hull, grad_phi1_hull, p1_waterline = _first_order_fields_from_dataset(ds_at_freq, body, mesh, solver, q.coefficients[1])
+        grad_p1_hull = 1j * omega * rho * grad_phi1_hull  # order 1, (nb_faces, 3)
+
+        # Hull: Bernoulli + displacement of the pressure to X+u
+        u, _ = floating_body._displacement_expansions(q)  # order 1+2, (nb_faces, 3)
+        p_expansion = p0 + p1_hull - rho/2 * (grad_phi1_hull * grad_phi1_hull).sum(-1)  # order 0+1+2, (nb_faces,)
+        gradient_p_expansion = grad_p0 + grad_p1_hull  # order 0+1, (nb_faces, 3)
+        p_displaced = p_expansion + (gradient_p_expansion * u).sum(-1)  # order 0+1+2, (nb_faces,)
+
+        # Waterline: strip between the mean waterline and the free surface, (nb_edges_waterline,)
+        # The second-order motion at the waterline would only multiply order-0 quantities, which are zero there.
+        eta = p1_waterline / (rho * g)  # free surface elevation, order 1
+        u3 = (q.expand_dims(-1) * vertical_dofs_motion_waterline).sum(axis=-2)  # vertical motion of the hull, order 1
+        strip_pressure = p1_waterline - rho * g * (eta + u3) / 2 # mean over the height of the strip, order 1
+        strip_height = eta - u3  # order 1
+        strip_width = strip_height / inclination_waterline  # along the (possibly inclined) hull, order 1
+        waterline_force_density = strip_pressure * strip_width  # order 2
+
+        force = (floating_body.integrate_pressure_on_moving_body(p_displaced, q)
+                 + floating_body.integrate_pressure_on_waterline(waterline_force_density))
+        outputs_per_freq.append((force.coefficients[2], p_displaced.coefficients[2],
+                                 strip_pressure.coefficients[1], strip_height.coefficients[1]))
+
+    return _near_field_output_dataset(first_order_motion_amplitude, freq_type, body, mesh, outputs_per_freq, output_pressure)
+
+
+def _first_order_fields_from_dataset(dataset, body, mesh, solver, q1):
+    """First-order fields of the freely floating body at one frequency, for each wave direction:
+    incident, diffracted, and radiated with the motion `q1[i_dir, i_dof]`.
+    `mesh` is the hull mesh of `body`, merged (for the waterline of symmetric meshes).
+
+    Parameters
+    ----------
+    q1: array of shape (nb_dir, nb_dofs)
+        Complex amplitudes of the dofs for each wave direction.
+
+    Returns
+    -------
+    First-order DifferenceFrequencyExpansion (order 1 of shape (nb_dir, *field)):
+    p1_hull, field (nb_faces,)
+        Pressure at the faces centers of the hull.
+    grad_phi1_hull, field (nb_faces, 3)
+        Gradient of the potential at the faces centers of the hull.
+    p1_waterline, field (nb_edges_waterline,)
+        Pressure at the middles of the edges of the waterline.
+    """
+    dofs = list(body.dofs)
+    omega = float(dataset.coords["omega"])
+    rho = float(dataset.coords["rho"])
+    g = float(dataset.coords["g"])
+    water_depth = float(dataset.coords["water_depth"])
+    p1_hull = (dataset["pressure_Froude_Krylov"] + dataset["pressure_diffraction"]).transpose("wave_direction", "hull_face").values
+    p1_hull = p1_hull + q1 @ dataset["pressure_radiation"].sel(radiating_dof=dofs).transpose("radiating_dof", "hull_face").values
+
+    # Diffracted and radiated fields, from the total source distribution for each wave direction
+    # (the fields are linear in the sources).
+    sources = (_sources_on_mesh_including_lid(dataset, "diffraction", "wave_direction", body)
+               + q1 @ _sources_on_mesh_including_lid(dataset.sel(radiating_dof=dofs), "radiation", "radiating_dof", body))
+    if not np.all(np.isfinite(sources)):
+        raise ValueError(f"The dataset contains missing (NaN) source distributions at omega={omega}, needed for the near field mean drift force.")
+    gf_params = dict(free_surface=0.0, water_depth=water_depth, wavenumber=float(dataset.coords["wavenumber"]))
+    grad_phi1_hull = solver._compute_potential_gradient_from_sources(mesh, body.mesh_including_lid, sources, **gf_params)
+    phi1_waterline = solver._compute_potential_from_sources(mesh.middle_edges_waterline, body.mesh_including_lid, sources, **gf_params)
+    p1_waterline = 1j * omega * rho * phi1_waterline
+
+    # Incident waves
+    for i_dir, wave_direction in enumerate(dataset.coords["wave_direction"].values):
+        problem = DiffractionProblem(body=body, wave_direction=wave_direction, omega=omega, rho=rho, g=g, water_depth=water_depth)
+        grad_phi1_hull[i_dir] += airy_waves_velocity(mesh, problem)
+        p1_waterline[i_dir] += airy_waves_pressure(mesh.middle_edges_waterline, problem)
+
+    return Expansion.first_order(p1_hull), Expansion.first_order(grad_phi1_hull), Expansion.first_order(p1_waterline)
+
+
+def _prepare_near_field_inputs(first_order_motion_amplitude, dataset, body, solver):
+    """Checks and defaults of the inputs of `near_field_mean_drift_force`.
+
+    Returns
+    -------
+    solver: BEMSolver
+    floating_body: FloatingBody
+        `body`, or `body.as_FloatingBody` for a Multibody (same mesh and dofs, `DofOnSubmesh` for a Multibody),
+        whose methods compute the second-order part. The first-order fields are evaluated with `body` itself,
+        whose mesh including lid and hull mask are those of the dataset.
+    freq_type: str
+        The frequency dimension of `first_order_motion_amplitude`.
+    motion_amplitude: array of shape (nb_freq, nb_dir, nb_dofs)
+    dataset: xarray Dataset
+        The dataset at the frequencies and wave directions of `first_order_motion_amplitude`, in the same order.
+    """
+    if solver is None:
+        from capytaine.bem.solver import BEMSolver  # Not at the top of the module, to avoid a circular import.
+        solver = BEMSolver()
+    floating_body = body.as_FloatingBody if isinstance(body, Multibody) else body
+    if not isinstance(floating_body, FloatingBody):
         raise NotImplementedError(f"The near field mean drift force is only implemented for a FloatingBody or a Multibody, not for {body}.")
     if not all(isinstance(dof, AbstractDof) for dof in body.dofs.values()):
         raise NotImplementedError("The near field mean drift force is only implemented for dofs defined as AbstractDof (e.g. TranslationDof, RotationDof, CustomDof), not as arrays.")
-    mesh = body.mesh.merged()
-    rho = results[0].rho
-    g = results[0].g
-    freq_type = results[0].provided_freq_type
+    _check_dataset_for_near_field(dataset, body, solver)
+    freq_type = _check_motion_amplitude_for_near_field(first_order_motion_amplitude, dataset, body)
+
     first_order_motion_amplitude = first_order_motion_amplitude.transpose(freq_type, "wave_direction", "radiating_dof")
-    omegas = first_order_motion_amplitude.coords["omega"].values
-    motion_amplitude = first_order_motion_amplitude.sel(radiating_dof=list(body.dofs)).values # motion_amplitude[i_freq, i_dir, i_dof]
+    motion_amplitude = first_order_motion_amplitude.sel(radiating_dof=list(body.dofs)).values
+    dataset = dataset.sel({freq_type: first_order_motion_amplitude.coords[freq_type].values,
+                           "wave_direction": first_order_motion_amplitude.coords["wave_direction"].values})
+    return solver, floating_body, freq_type, motion_amplitude, dataset
 
-    # First-order amplitudes
-    pressure_hull = total_pressure_on_hull(mesh, results, first_order_motion_amplitude).values # pressure_hull[i_freq, i_dir, i_face]
-    gradient_potential = total_potential_gradient(solver, mesh, results, first_order_motion_amplitude).values # gradient_potential[i_freq, i_dir, i_face, xyz]
-    hydrodynamic_pressure_waterline = total_pressure(solver, mesh.middle_edges_waterline, results, first_order_motion_amplitude).values # hydrodynamic_pressure_waterline[i_freq, i_dir, i_vertex_waterline]
-    dofs_motion_waterline = body._dofs_on_waterline() # dofs_motion_waterline[i_dof, i_vertex_waterline, xyz]
-    vertical_motion_waterline = np.sum(motion_amplitude[..., None] * dofs_motion_waterline[None, None, :, :, 2], axis=2) # vertical_motion_waterline[i_freq, i_dir, i_vertex_waterline]
-    free_surface_elevation_waterline = hydrodynamic_pressure_waterline / (rho * g)
-    # Pressure averaged over the height of the strip between the mean waterline and the free surface,
-    # height of this strip, and its width along the (possibly inclined) hull.
-    pressure_waterline = hydrodynamic_pressure_waterline - rho * g * (free_surface_elevation_waterline + vertical_motion_waterline)/2
-    relative_elevation_waterline = free_surface_elevation_waterline - vertical_motion_waterline
-    strip_width_waterline = relative_elevation_waterline / np.sqrt(1 - mesh.normals_edges_waterline[:, 2]**2)
 
-    # Hydrostatic pressure on the hull (order 0)
-    hydrostatic_pressure = - rho * g * mesh.faces_centers[:, 2] # hydrostatic_pressure[i_face]
-    gradient_hydrostatic_pressure = np.array([0.0, 0.0, - rho * g])
+def _check_dataset_for_near_field(dataset, body, solver):
+    """Shallow consistency checks of the dataset input of `near_field_mean_drift_force`."""
+    if dataset.attrs.get("method") == "direct":
+        raise ValueError("The near field mean drift force needs the source distributions of the indirect method, "
+                         "but the dataset has been computed with the direct method.")
+    missing = [name for name in ["sources_diffraction", "sources_radiation"] if name not in dataset]
+    if body.lid_mesh is not None:
+        missing += [name for name in ["sources_lid_diffraction", "sources_lid_radiation"] if name not in dataset]
+    if len(missing) > 0:
+        raise ValueError(f"The dataset does not contain {missing}, needed for the near field mean drift force.\n"
+                         "Compute the dataset with the indirect method and `keep_details=True`, "
+                         "e.g. `solver.fill_dataset(test_matrix, body, keep_details=True)`.")
+    for name in ["rho", "g", "water_depth", "forward_speed"]:
+        if dataset.coords[name].ndim != 0:
+            raise NotImplementedError(f"The near field mean drift force only supports datasets with a single value of {name}.")
+    if float(dataset.coords["forward_speed"]) != 0.0:
+        raise NotImplementedError("The near field mean drift force is not implemented with forward speed.")
+    for name in ["omega", "wavenumber"]:
+        if name not in dataset.coords:
+            raise ValueError(f"The near field mean drift force needs the coordinate {name} in the dataset.")
+    if body.lid_mesh is None and "lid_face" in dataset.dims:
+        raise ValueError(f"The dataset has been computed with a lid, but {body} has no lid mesh.")
+    if dataset.sizes["hull_face"] != body.mesh.nb_faces or (body.lid_mesh is not None and dataset.sizes["lid_face"] != body.lid_mesh.nb_faces):
+        raise ValueError(f"The faces of the dataset do not match the mesh of {body}.")
+    # With `mesh=True`, the dataset also stores the faces centers.
+    if "mesh_faces_center" in dataset and not np.allclose(dataset["mesh_faces_center"].values, body.mesh.faces_centers):
+        raise ValueError(f"The faces of the dataset do not match the mesh of {body}.")
+    if "lid_mesh_faces_center" in dataset and not np.allclose(dataset["lid_mesh_faces_center"].values, body.lid_mesh.faces_centers):
+        raise ValueError(f"The faces of the lid of the dataset do not match the lid mesh of {body}.")
+    missing_dofs = set(body.dofs) - set(dataset.coords["radiating_dof"].values)
+    if len(missing_dofs) > 0:
+        raise ValueError(f"The dataset does not contain the radiation problems of the dofs {sorted(missing_dofs)}.")
+    # Only the Green function matters to evaluate the potential from the source distributions.
+    green_function = getattr(solver.engine, "green_function", None)
+    green_function_settings = green_function.exportable_settings if green_function is not None else {}
+    for key, value in green_function_settings.items():
+        if key in dataset.attrs and str(dataset.attrs[key]) != str(value):
+            LOG.warning(f"The setting {key} of the solver ({value}) differs from the one used to compute the dataset "
+                        f"({dataset.attrs[key]}): the potential evaluated from the source distributions might be inconsistent.")
 
-    nb_freq, nb_dir = motion_amplitude.shape[:2]
-    F = np.empty((nb_freq, nb_dir, nb_dir, len(body.dofs)), dtype=complex)
-    p2 = np.empty((nb_freq, nb_dir, nb_dir, mesh.nb_faces), dtype=complex)
-    for w in range(nb_freq):
-        u, _ = body._displacement_expansions(motion_amplitude[w]) # field (nb_faces, 3)
-        velocity = Expansion.first_order(gradient_potential[w]) # field (nb_faces, 3)
-        gradient_pressure = gradient_hydrostatic_pressure + Expansion.first_order(1j * omegas[w] * rho * gradient_potential[w]) # field (nb_faces, 3)
-        # Bernoulli (without second-order potential) at the displaced point X + u
-        pressure = hydrostatic_pressure + Expansion.first_order(pressure_hull[w]) - rho/2 * (velocity * velocity).sum(-1) + (gradient_pressure * u).sum(-1) # field (nb_faces,)
-        # The second-order motion at the waterline would only multiply order-0 quantities, which are zero at the waterline.
-        waterline_term = Expansion.first_order(pressure_waterline[w]) * Expansion.first_order(strip_width_waterline[w]) # field (nb_waterline_segments,)
-        force = body.integrate_pressure_on_moving_body(pressure, motion_amplitude[w]) + body.integrate_pressure_on_waterline(waterline_term)
-        F[w] = force.coefficients[2]
-        p2[w] = pressure.coefficients[2]
 
+def _check_motion_amplitude_for_near_field(first_order_motion_amplitude, dataset, body):
+    """Check that `first_order_motion_amplitude` matches the dataset, and return the name of its frequency dimension."""
+    freq_types = [d for d in first_order_motion_amplitude.dims if d not in {"wave_direction", "radiating_dof"}]
+    if len(freq_types) != 1 or freq_types[0] not in dataset.coords:
+        raise ValueError("The first order motion amplitude should have the dimensions 'wave_direction', 'radiating_dof' "
+                         f"and a frequency dimension of the dataset, got {first_order_motion_amplitude.dims}.")
+    freq_type, = freq_types
+    for name in [freq_type, "wave_direction"]:
+        missing = set(first_order_motion_amplitude.coords[name].values) - set(dataset.coords[name].values)
+        if len(missing) > 0:
+            raise ValueError(f"The values {sorted(missing)} of {name} of the first order motion amplitude are not in the dataset.")
+    missing_dofs = set(body.dofs) - set(first_order_motion_amplitude.coords["radiating_dof"].values)
+    if len(missing_dofs) > 0:
+        raise ValueError(f"The first order motion amplitude does not contain the dofs {sorted(missing_dofs)}.")
+    return freq_type
+
+
+def _sources_on_mesh_including_lid(dataset, kind, leading_dim, body):
+    """Source distributions `sources_{kind}` of the dataset (and `sources_lid_{kind}`), on all the faces of
+    `body.mesh_including_lid`, as an array of shape (nb_{leading_dim}, nb_faces_including_lid)."""
+    hull = dataset[f"sources_{kind}"].transpose(leading_dim, "hull_face").values
+    if body.lid_mesh is None:
+        return hull
+    sources = np.empty((hull.shape[0], body.mesh_including_lid.nb_faces), dtype=complex)
+    sources[:, body.hull_mask] = hull
+    sources[:, ~body.hull_mask] = dataset[f"sources_lid_{kind}"].transpose(leading_dim, "lid_face").values
+    return sources
+
+
+def _near_field_output_dataset(first_order_motion_amplitude, freq_type, body, mesh, outputs_per_freq, output_pressure):
+    """Output dataset of `near_field_mean_drift_force`, from the tuples (force, pressure on the hull,
+    pressure and height of the strip at the waterline) of each frequency."""
+    force, pressure_hull_mean_drift, pressure_waterline, relative_elevation_waterline = (
+            np.stack(output) for output in zip(*outputs_per_freq))
     coords = {
         freq_type: first_order_motion_amplitude.coords[freq_type].values,
         "wave_direction_k": first_order_motion_amplitude.coords["wave_direction"].values,
         "wave_direction_l": first_order_motion_amplitude.coords["wave_direction"].values,
         }
-    dataset = xr.Dataset(
+    output = xr.Dataset(
             {"near_field_mean_drift_force": xr.DataArray(
-                data=F,
+                data=force,
                 dims=[freq_type, "wave_direction_k", "wave_direction_l", "influenced_dof"],
                 coords={**coords, "influenced_dof": list(body.dofs.keys())},
                 )
              })
 
     if output_pressure:
-        dataset["pressure_hull_mean_drift"] = xr.DataArray(
-                data=p2,
+        output["pressure_hull_mean_drift"] = xr.DataArray(
+                data=pressure_hull_mean_drift,
                 dims=[freq_type, "wave_direction_k", "wave_direction_l", "hull_face"],
                 coords=coords,
                  )
@@ -294,87 +461,19 @@ def near_field_mean_drift_force(first_order_motion_amplitude, results, solver, *
             freq_type: first_order_motion_amplitude.coords[freq_type].values,
             "wave_direction": first_order_motion_amplitude.coords["wave_direction"].values,
             }
-        dataset["pressure_waterline_total"] = xr.DataArray(
+        output["pressure_waterline_total"] = xr.DataArray(
                 pressure_waterline,
                 dims=[freq_type, "wave_direction", "waterline_segment"],
                 coords=waterline_coords,
                  )
-        dataset["relative_elevation_waterline"] = xr.DataArray(
+        output["relative_elevation_waterline"] = xr.DataArray(
                 relative_elevation_waterline,
                 dims=[freq_type, "wave_direction", "waterline_segment"],
                 coords=waterline_coords,
                  )
-        dataset["mesh_waterline"] = xr.DataArray(
+        output["mesh_waterline"] = xr.DataArray(
                 mesh.vertices[mesh.edges_waterline, :],
                 dims=["waterline_segment", "point_per_segment", "space_coordinate"],
                 )
 
-    return dataset
-
-def total_potential_gradient(solver, mesh, results, rao):
-    freq_type = results[0].provided_freq_type
-    potential_gradient = xr.DataArray(
-        data=np.zeros((rao.sizes[freq_type], rao.sizes["wave_direction"], mesh.nb_faces, 3), dtype=complex),
-        coords={
-            freq_type: rao.coords[freq_type],
-            "wave_direction": rao.coords["wave_direction"],
-            "mesh_face": np.arange(mesh.nb_faces),
-            "xyz": np.arange(3),
-        },
-    )
-    for res in results:
-        if isinstance(res, DiffractionResult):
-            potential_gradient.loc[{freq_type: getattr(res, freq_type), "wave_direction": res.wave_direction}] += airy_waves_velocity(mesh, res) # incident
-            potential_gradient.loc[{freq_type: getattr(res, freq_type), "wave_direction": res.wave_direction}] += solver._compute_potential_gradient(mesh, res) # diffracted
-
-        elif isinstance(res, RadiationResult):
-            rao_rad = rao.sel({freq_type: getattr(res, freq_type), "radiating_dof": res.radiating_dof}).values
-            potential_gradient.loc[{freq_type: getattr(res, freq_type)}] += rao_rad[:, None, None] * solver._compute_potential_gradient(mesh, res)[None, :, :] # radiated
-            # potential_gradient[i_freq, i_dir, i_face, xyz] = rao_rad[i_dir] * _compute_potential_gradient[i_face, xyz]
-
-    return potential_gradient
-
-def total_pressure(solver, vertices_middle, results, rao):
-    nb_vertices_waterline = np.shape(vertices_middle)[0]
-    freq_type = results[0].provided_freq_type
-    pressure = xr.DataArray(
-        data=np.zeros((rao.sizes[freq_type], rao.sizes["wave_direction"], nb_vertices_waterline), dtype=complex),
-        coords={
-            freq_type: rao.coords[freq_type],
-            "wave_direction": rao.coords["wave_direction"],
-            "waterline_segment": np.arange(nb_vertices_waterline),
-        },
-    )
-    for res in results:
-        if isinstance(res, DiffractionResult):
-            pressure.loc[{freq_type: getattr(res, freq_type), "wave_direction": res.wave_direction}] += airy_waves_pressure(vertices_middle, res) # incident
-            pressure.loc[{freq_type: getattr(res, freq_type), "wave_direction": res.wave_direction}] += solver.compute_pressure(vertices_middle, res) # diffracted
-
-        elif isinstance(res, RadiationResult):
-            rao_rad = rao.sel({freq_type: getattr(res, freq_type), "radiating_dof": res.radiating_dof}).values
-            pressure.loc[{freq_type: getattr(res, freq_type)}] += rao_rad[:, None] * solver.compute_pressure(vertices_middle, res)[None, :] # radiated
-            # pressure[i_freq, i_dir, i_edge_waterline] = rao_rad[i_dir] * compute_pressure[i_edge_waterline]
-
-    return pressure
-
-def total_pressure_on_hull(mesh, results, rao):
-    freq_type = results[0].provided_freq_type
-    pressure = xr.DataArray(
-        data=np.zeros((rao.sizes[freq_type], rao.sizes["wave_direction"], mesh.nb_faces), dtype=complex),
-        coords={
-            freq_type: rao.coords[freq_type],
-            "wave_direction": rao.coords["wave_direction"],
-            "hull_face": np.arange(mesh.nb_faces),
-        },
-    )
-    for res in results:
-        if isinstance(res, DiffractionResult):
-            pressure.loc[{freq_type: getattr(res, freq_type), "wave_direction": res.wave_direction}] += airy_waves_pressure(mesh, res) # incident
-            pressure.loc[{freq_type: getattr(res, freq_type), "wave_direction": res.wave_direction}] += res.pressure_on_hull # diffracted
-
-        elif isinstance(res, RadiationResult):
-            rao_rad = rao.sel({freq_type: getattr(res, freq_type), "radiating_dof": res.radiating_dof}).values
-            pressure.loc[{freq_type: getattr(res, freq_type)}] += rao_rad[:, None] * res.pressure_on_hull[None, :] # radiated
-            # pressure[i_freq, i_dir, i_face] = rao_rad[i_dir] * pressure_on_hull[i_face]
-
-    return pressure
+    return output

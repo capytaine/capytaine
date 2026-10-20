@@ -69,7 +69,7 @@ def test_second_order_rigid_body_motion_and_nanson_cofactor():
     # For rigid body motions, the order 2 of the displacement and the Nanson cofactor det(F) F^-T are identical.
     # This test check the values computed by the code for both against the reference `second_order_rotation_matrix`.
     body, q, rotation_center = rigid_body_and_motion()
-    u, grad_u = body._displacement_expansions(q)
+    u, grad_u = body._displacement_expansions(Expansion.first_order(q))
     deformation = np.eye(3) + grad_u
     cofactor = deformation.det().expand_dims(-1).expand_dims(-1) * deformation.inv().T
     R2 = second_order_rotation_matrix(q[:, 3:])
@@ -84,7 +84,7 @@ def test_integrate_second_order_pressure_on_moving_body():
     p2 = RNG.normal(size=(nb_dir, nb_dir, nb_faces)) + 1j * RNG.normal(size=(nb_dir, nb_dir, nb_faces))
     p2 = (p2 + np.conj(np.swapaxes(p2, 0, 1))) / 2
     p = Expansion([0.0, np.zeros((nb_dir, nb_faces)), p2])
-    second_order_force = body.integrate_pressure_on_moving_body(p, q).coefficients[2]
+    second_order_force = body.integrate_pressure_on_moving_body(p, Expansion.first_order(q)).coefficients[2]
     for k in range(nb_dir):
         for l in range(nb_dir):
             np.testing.assert_allclose(second_order_force[k, l], list(body.integrate_pressure(p2[k, l]).values()), rtol=1e-12)

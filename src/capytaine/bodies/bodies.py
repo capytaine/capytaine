@@ -291,29 +291,29 @@ class FloatingBody(_FloatingBodyHydrostaticsMixin, AbstractBody):
         mesh = self.mesh.merged()  # The waterline data of symmetric meshes is computed on the merged mesh.
         return np.array([dof.evaluate_motion(mesh, location="waterline") for dof in self.dofs.values()])
 
-    def _displacement_expansions(self, first_order_motion_amplitude):
+    def _displacement_expansions(self, q):
         """Displacement u = Σ_j q_j δu_j + 1/2 Σ_jk q_j q_k δ²u_jk at the faces centers, and its gradient.
 
         Parameters
         ----------
-        first_order_motion_amplitude: array of shape (nb_wave_directions, nb_dofs)
-            Complex amplitudes q of the dofs at one frequency, for each wave direction.
+        q: DifferenceFrequencyExpansion, first order, with field (nb_dofs,)
+            Complex amplitudes of the dofs at one frequency (order 1 of shape (nb_wave_directions, nb_dofs)).
 
         Returns
         -------
         DifferenceFrequencyExpansion with field (nb_faces, 3), and DifferenceFrequencyExpansion with field (nb_faces, 3, 3)
         """
-        Expansion = DifferenceFrequencyExpansion
-        q = np.asarray(first_order_motion_amplitude)
         motion, gradient, second_order = self._dofs_on_faces()
 
-        # First order motions
-        u = Expansion.first_order(np.sum(q[:, :, None, None] * motion[None], axis=1))
-        grad_u = Expansion.first_order(np.sum(q[:, :, None, None, None] * gradient[None], axis=1))
+        u = (q.expand_dims(-1).expand_dims(-1) * motion).sum(axis=-3)
+        #                 (..., nb_dofs, 1, 1) · (nb_dofs, nb_faces, 3)
+
+        grad_u = (q.expand_dims(-1).expand_dims(-1).expand_dims(-1) * gradient).sum(axis=-4)
+        #                                   (..., nb_dofs, 1, 1, 1) · (nb_dofs, nb_faces, 3, 3)
 
         # Add second-order motions
         for (j, k), (motion_jk, gradient_jk) in second_order.items():
-            q_jk = Expansion.first_order(q[:, j]) * Expansion.first_order(q[:, k])
+            q_jk = q[..., j] * q[..., k]
             u = u + 0.5 * q_jk * motion_jk
             grad_u = grad_u + 0.5 * q_jk * gradient_jk
         return u, grad_u
@@ -330,23 +330,39 @@ class FloatingBody(_FloatingBodyHydrostaticsMixin, AbstractBody):
         ----------
         pressure: DifferenceFrequencyExpansion
             Pressure at the displaced faces centers p(X+u), with field (nb_faces,).
-        first_order_motion_amplitude: array of shape (nb_wave_directions, nb_dofs)
-            Complex amplitudes of the dofs at one frequency, for each of the wave directions of `pressure`.
+        first_order_motion_amplitude: DifferenceFrequencyExpansion, first order, with field (nb_dofs,)
+            Complex amplitudes of the dofs at one frequency (order 1 of shape (nb_wave_directions, nb_dofs),
+            for the wave directions of `pressure`).
 
         Returns
         -------
         DifferenceFrequencyExpansion
             The generalized forces, with field (nb_dofs,).
         """
-        u, grad_u = self._displacement_expansions(first_order_motion_amplitude)
-        motion, gradient, _ = self._dofs_on_faces()
-        deformation = np.eye(3) + grad_u  # F
+        # All variables below are expansions with orders 0, 1 and 2, unless stated otherwise.
+
+        u, grad_u = self._displacement_expansions(first_order_motion_amplitude)  # order 1 and 2
+        #                                     -> (..., nb_faces, 3) and (..., nb_faces, 3, 3)
+        δu, grad_δu, _ = self._dofs_on_faces()  # order 0
+        #                                     -> (nb_dofs, nb_faces, 3) and (nb_dofs, nb_faces, 3, 3)
+
+        deformation = np.eye(3) + grad_u  # (..., nb_faces, 3, 3)
         nanson = deformation.det().expand_dims(-1).expand_dims(-1) * deformation.inv().T
-        displaced_normals = (nanson @ np.expand_dims(self.mesh.faces_normals, axis=-1)).squeeze(-1)  # (nb_faces, 3)
-        displaced_dofs = motion + (gradient @ u.expand_dims(-3).expand_dims(-1)).squeeze(-1)  # (nb_dofs, nb_faces, 3), Hessian of the dofs neglected
+        #                                    (..., nb_faces, 1, 1) * (..., nb_faces, 3, 3)
+        displaced_normals = (nanson @ self.mesh.faces_normals[:, :, None]).squeeze(-1)
+        #     (..., nb_faces, 3, 3) @ (nb_faces, 3, 1)                              -> (..., nb_faces, 3)
+
+        # The hessian of the dofs is neglected (it is zero for rigid body dofs)
+        displaced_dofs = δu + (grad_δu @ u.expand_dims(-3).expand_dims(-1)).squeeze(-1)
+        #  (nb_dofs, nb_faces, 3) + ((nb_dofs, nb_faces, 3, 3) @ (..., 1, nb_faces, 3, 1)) -> (..., nb_dofs, nb_faces, 3)
+
         # The minus sign is because we want the force of the fluid on the body and not the force of the body on the fluid.
         normal_dof_amplitude_on_face = -(displaced_dofs * displaced_normals.expand_dims(-3)).sum(-1) * self.mesh.faces_areas
+        #                  ((..., nb_dofs, nb_faces, 3) · (..., 1, nb_faces, 3))                     * (nb_faces,)
+        #                                                                         -> (..., nb_dofs, nb_faces)
+
         return (pressure.expand_dims(-2) * normal_dof_amplitude_on_face).sum(-1)
+        #             (..., 1, nb_faces) · (..., nb_dofs, nb_faces)   -> (..., nb_dofs)
 
     def integrate_pressure_on_waterline(self, pressure):
         """Integrate a lineic pressure along the mean waterline, up to second order. Experimental.

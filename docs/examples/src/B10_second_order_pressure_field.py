@@ -18,19 +18,16 @@ body = cpt.FloatingBody(
     dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, 0)),
     center_of_mass=(0,0,0)
 )
-
-wavelengths = [2.0]
-wave_directions = [0.0, np.pi/3]
+test_matrix = xr.Dataset(coords={
+    'wavelength': [2.0],
+    'wave_direction': [0.0, np.pi/3],
+    'radiating_dof': list(body.dofs.keys())
+})
 
 solver = cpt.BEMSolver()
-pbs = [cpt.DiffractionProblem(body=body, wavelength=wavelength, wave_direction=beta)
-       for beta in wave_directions for wavelength in wavelengths]
-pbs += [cpt.RadiationProblem(body=body, wavelength=wavelength, radiating_dof=dof)
-        for dof in body.dofs for wavelength in wavelengths]
-results = solver.solve_all(pbs)
-ds = cpt.assemble_dataset(results)
+ds = solver.fill_dataset(test_matrix, body, keep_details=True)
 rao = cpt.post_pro.rao(ds)
-ds.update(near_field_mean_drift_force(rao, results, solver, output_pressure=True))
+ds.update(near_field_mean_drift_force(rao, ds, body, solver=solver, output_pressure=True))
 
 # The sea is made of the two waves, with the same frequency.
 # Their complex amplitudes set their heights and their phases (at the origin, at t=0).
@@ -146,7 +143,7 @@ mean_drift_waterline_pressure_full_mesh = remap_waterline_pressure(
 
 # ================================== DISPLAY ==================================
 # Display only a single frequency
-freq_display = wavelengths[0]
+freq_display = ds.coords["wavelength"].values[0]
 
 first_order_pressure_displayed = first_order_pressure_full_mesh.sel(wavelength=freq_display)
 mean_drift_hull_pressure_displayed = mean_drift_hull_pressure_full_mesh.sel(wavelength=freq_display)
@@ -180,7 +177,7 @@ for ax, (title, field, norm) in zip(axs, fields):
     ax.view_init(elev=30, azim=-135)  # Show the faces x = -0.5 and y = -0.5, on which the incoming waves hit
 first_order_collection = axs[0].collections[-1]
 fig.suptitle(", ".join(f"wave from {np.degrees(beta):.0f}°: amplitude {np.abs(a):.2f}m, phase {np.degrees(np.angle(a)):.0f}°"
-                       for beta, a in zip(wave_directions, amplitude.sel(wavelength=freq_display).values)))
+                       for beta, a in zip(ds.coords["wave_direction"].values, amplitude.sel(wavelength=freq_display).values)))
 fig.colorbar(plt.cm.ScalarMappable(norm=first_order_norm, cmap=cmap), ax=axs[0], shrink=0.6)
 fig.colorbar(plt.cm.ScalarMappable(norm=mean_norm, cmap=cmap), ax=axs[1:], shrink=0.6)
 

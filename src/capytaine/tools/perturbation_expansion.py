@@ -127,10 +127,19 @@ class PerturbationExpansion:
 
     def __mul__(self, other):
         """Elementwise (Hadamard/scalar) truncated Cauchy product."""
-        a, b = self._aligned(other)
-        return self._new(self._cauchy_product(a, b, operator.mul))
+        if isinstance(other, (int, float, complex)):
+            return self._new([other * c for c in self.coefficients])
+        else:
+            a, b = self._aligned(other)
+            return self._new(self._cauchy_product(a, b, operator.mul))
 
     __rmul__ = __mul__
+
+    def __truediv__(self, other):
+        if isinstance(other, (int, float, complex, np.ndarray)):
+            return self._new([c / other for c in self.coefficients])
+        else:
+            return NotImplemented
 
     def __matmul__(self, other):
         """Matrix-multiplication truncated Cauchy product (for matrix/vector-valued coefficients)."""
@@ -223,8 +232,11 @@ class DifferenceFrequencyExpansion(PerturbationExpansion):
     def __init__(self, coefficients):
         x0, x1, x2 = (np.asarray(c) for c in coefficients)
         if np.iscomplexobj(x0):
-            raise ValueError("The order-0 coefficient of a DifferenceFrequencyExpansion must be real. "
-                             "Apply complex factors to the first-order amplitudes before building the expansion.")
+            if np.max(np.abs(x0.imag)) < 1e-10:
+                x0 = x0.real
+            else:
+                raise ValueError("The order-0 coefficient of a DifferenceFrequencyExpansion must be real. "
+                                 "Apply complex factors to the first-order amplitudes before building the expansion.")
         if x1.ndim == 0 or x2.ndim == 1:
             raise ValueError("The order-1 coefficient needs one leading wave axis and the order-2 coefficient two (or none if it is a scalar).")
         nb_waves = x1.shape[0]
