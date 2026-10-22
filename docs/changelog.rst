@@ -33,10 +33,12 @@ Major changes
   See :doc:`user_manual/post_pro` for more details.
 
 * Add :func:`~capytaine.post_pro.mean_drift_force.near_field_mean_drift_force` to compute the mean drift force, for any dofs of a :class:`~capytaine.bodies.bodies.FloatingBody` or a :class:`~capytaine.bodies.multibodies.Multibody` (rigid body motions or generalized modes with a gradient of motion). (:pull:`871`)
+  It is called as ``near_field_mean_drift_force(first_order_motion_amplitude, dataset, body)``, where ``dataset`` has been computed with the indirect method and ``keep_details=True`` (e.g. ``solver.fill_dataset(test_matrix, body, keep_details=True)``): the first-order fields are evaluated from the source distributions stored in the dataset, without solving the BEM problems again.
+  The force is computed for the frequencies and wave directions common to ``first_order_motion_amplitude`` and ``dataset``, and for the dofs common to them and ``body`` (a warning is logged when some are left out).
   This function returns a dataset with a ``near_field_mean_drift_force`` variable of shape ``(nb_freq, nb_wave_direction, nb_wave_direction, nb_dofs)``.
   Optional parameter ``output_pressure`` allows to return the mean drift pressure field on the hull as ``pressure_hull_mean_drift``, of shape ``(nb_freq, nb_wave_direction, nb_wave_direction, nb_hull_faces)``,
   as well as the first-order fields on the waterline from which the waterline term of the force is computed: ``pressure_waterline_total`` and ``relative_elevation_waterline``, of shape ``(nb_freq, nb_wave_direction, nb_waterline_segments)``, and the waterline segments ``mesh_waterline``.
-  The near field mean drift force can be expoted to WAMIT's `.9` file format. (:pull:`909`)
+  The near field mean drift force can be exported to WAMIT's `.9` file format. (:pull:`909`)
 
 Bug fixes
 ~~~~~~~~~
