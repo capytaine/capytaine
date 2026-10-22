@@ -188,16 +188,15 @@ def near_field_mean_drift_force(first_order_motion_amplitude, dataset, body, *, 
     first_order_motion_amplitude : xarray DataArray
         The motion RAO, as returned by :func:`capytaine.post_pro.rao.rao`.
     dataset : xarray Dataset
-        The dataset of the diffraction and radiation problems used to compute the RAO, for all the
-        wavelengths and wave directions of interest, with the source distributions on the body
+        The dataset of the diffraction and radiation results, for all the wavelengths
+        and wave directions of interest, with the source distributions on the body
         (``sources_diffraction``, ``sources_radiation``, and on the lid if any).
     body : FloatingBody or Multibody
         The body of the dataset.
     solver : BEMSolver, optional
         The solver evaluating the potential and its gradient from the source distributions.
-        It should use the same Green function as the one used to compute the dataset (a warning
-        is raised when the settings stored in the dataset differ).
-        Default: ``BEMSolver()``.
+        It is recommended to use the same one as the one used to compute the dataset.
+        Default: initialize default ``BEMSolver()``.
     output_pressure : bool, optional
         If True, also return the second-order pressure field on the hull and the first-order
         fields on the waterline from which the waterline term of the force is computed.
@@ -208,6 +207,8 @@ def near_field_mean_drift_force(first_order_motion_amplitude, dataset, body, *, 
     xarray Dataset
         A dataset with a ``near_field_mean_drift_force`` variable of shape
         ``(nb_freq, nb_wave_direction, nb_wave_direction, nb_dofs)``.
+        If the inputs have different frequencies, wave direction or dofs, the output is
+        computed on their intersection.
         If ``output_pressure`` is True, the dataset also contains the following variables:
 
         - ``pressure_hull_mean_drift``, of shape
@@ -215,9 +216,6 @@ def near_field_mean_drift_force(first_order_motion_amplitude, dataset, body, *, 
           pressure field on the hull. It has the same normalization as
           ``near_field_mean_drift_force``: its diagonal is the mean pressure in a single wave of
           unit amplitude. It does not include the waterline term.
-          For a fixed body, the hull term of the force is the integral of this pressure on the mean hull.
-          For a moving body, it also includes the first-order pressure times the first-order
-          variations of the normals and of the motion of the dofs on the moving hull.
         - ``pressure_waterline_total``, of shape
           ``(nb_freq, nb_wave_direction, nb_waterline_segments)``: the complex first-order
           pressure ``p`` in the strip between the mean waterline and the free surface, at the
@@ -230,22 +228,23 @@ def near_field_mean_drift_force(first_order_motion_amplitude, dataset, body, *, 
           a wave of unit amplitude.
         - ``mesh_waterline``, of shape ``(nb_waterline_segments, 2, 3)``: the coordinates of
           the two ends of each segment of the waterline.
-
-        For the waves ``k`` and ``l``, the waterline term of ``near_field_mean_drift_force`` is
-        the integral along the waterline of ``(p_k conj(w_l) + conj(p_l) w_k)/4 * (-n·δu_j)`` for the dof ``j``,
-        where ``w = h / sqrt(1 - n_z²)`` is the width of the strip along the hull and ``n`` the normal of the
-        face containing the segment of the waterline.
     """
-    solver, floating_body, freq_type, motion_amplitude, dataset = _prepare_near_field_inputs(
-            first_order_motion_amplitude, dataset, body, solver)
-    mesh = floating_body.mesh.merged()  # The waterline data of symmetric meshes is computed on the merged mesh.
+    if solver is None:
+        from capytaine.bem.solver import BEMSolver  # Not at the top of the module, to avoid a circular import.
+        solver = BEMSolver()
+    body = body.as_FloatingBody if isinstance(body, Multibody) else body
+    mesh = body.mesh.merged()  # Symmetries are ignored for now
+    _check_inputs_for_near_field(dataset, body, solver)
+    first_order_motion_amplitude, dataset, body, freq_type = _align_coordinates(
+            first_order_motion_amplitude, dataset, body)
+    motion_amplitude = first_order_motion_amplitude.values  # (nb_freq, nb_wave_direction, nb_dofs)
     rho = float(dataset.coords["rho"])
     g = float(dataset.coords["g"])
 
     # Still water (order 0): hydrostatic pressure on the hull and geometry of the waterline
     p0 = -rho * g * mesh.faces_centers[:, 2]  # (nb_faces,)
     grad_p0 = np.array([0.0, 0.0, -rho * g])
-    vertical_dofs_motion_waterline = floating_body._dofs_on_waterline()[:, :, 2]  # (nb_dofs, nb_edges_waterline)
+    vertical_dofs_motion_waterline = body._dofs_on_waterline()[:, :, 2]  # (nb_dofs, nb_edges_waterline)
     inclination_waterline = np.sqrt(1 - mesh.normals_edges_waterline[:, 2]**2)  # (nb_edges_waterline,)
 
     outputs_per_freq = []
@@ -259,22 +258,22 @@ def near_field_mean_drift_force(first_order_motion_amplitude, dataset, body, *, 
         grad_p1_hull = 1j * omega * rho * grad_phi1_hull  # order 1, (nb_faces, 3)
 
         # Hull: Bernoulli + displacement of the pressure to X+u
-        u, _ = floating_body._displacement_expansions(q)  # order 1+2, (nb_faces, 3)
+        u, _ = body._displacement_expansions(q)  # order 1+2, (nb_faces, 3)
         p_expansion = p0 + p1_hull - rho/2 * (grad_phi1_hull * grad_phi1_hull).sum(-1)  # order 0+1+2, (nb_faces,)
         gradient_p_expansion = grad_p0 + grad_p1_hull  # order 0+1, (nb_faces, 3)
         p_displaced = p_expansion + (gradient_p_expansion * u).sum(-1)  # order 0+1+2, (nb_faces,)
 
         # Waterline: strip between the mean waterline and the free surface, (nb_edges_waterline,)
-        # The second-order motion at the waterline would only multiply order-0 quantities, which are zero there.
         eta = p1_waterline / (rho * g)  # free surface elevation, order 1
         u3 = (q.expand_dims(-1) * vertical_dofs_motion_waterline).sum(axis=-2)  # vertical motion of the hull, order 1
+        # The second-order motion at the waterline would only multiply order-0 quantities, which are zero there.
         strip_pressure = p1_waterline - rho * g * (eta + u3) / 2 # mean over the height of the strip, order 1
         strip_height = eta - u3  # order 1
         strip_width = strip_height / inclination_waterline  # along the (possibly inclined) hull, order 1
         waterline_force_density = strip_pressure * strip_width  # order 2
 
-        force = (floating_body.integrate_pressure_on_moving_body(p_displaced, q)
-                 + floating_body.integrate_pressure_on_waterline(waterline_force_density))
+        force = (body.integrate_pressure_on_moving_body(p_displaced, q)
+                 + body.integrate_pressure_on_waterline(waterline_force_density))
         outputs_per_freq.append((force.coefficients[2], p_displaced.coefficients[2],
                                  strip_pressure.coefficients[1], strip_height.coefficients[1]))
 
@@ -329,41 +328,7 @@ def _first_order_fields_from_dataset(dataset, body, mesh, solver, q1):
     return Expansion.first_order(p1_hull), Expansion.first_order(grad_phi1_hull), Expansion.first_order(p1_waterline)
 
 
-def _prepare_near_field_inputs(first_order_motion_amplitude, dataset, body, solver):
-    """Checks and defaults of the inputs of `near_field_mean_drift_force`.
-
-    Returns
-    -------
-    solver: BEMSolver
-    floating_body: FloatingBody
-        `body`, or `body.as_FloatingBody` for a Multibody (same mesh and dofs, `DofOnSubmesh` for a Multibody),
-        whose methods compute the second-order part. The first-order fields are evaluated with `body` itself,
-        whose mesh including lid and hull mask are those of the dataset.
-    freq_type: str
-        The frequency dimension of `first_order_motion_amplitude`.
-    motion_amplitude: array of shape (nb_freq, nb_dir, nb_dofs)
-    dataset: xarray Dataset
-        The dataset at the frequencies and wave directions of `first_order_motion_amplitude`, in the same order.
-    """
-    if solver is None:
-        from capytaine.bem.solver import BEMSolver  # Not at the top of the module, to avoid a circular import.
-        solver = BEMSolver()
-    floating_body = body.as_FloatingBody if isinstance(body, Multibody) else body
-    if not isinstance(floating_body, FloatingBody):
-        raise NotImplementedError(f"The near field mean drift force is only implemented for a FloatingBody or a Multibody, not for {body}.")
-    if not all(isinstance(dof, AbstractDof) for dof in body.dofs.values()):
-        raise NotImplementedError("The near field mean drift force is only implemented for dofs defined as AbstractDof (e.g. TranslationDof, RotationDof, CustomDof), not as arrays.")
-    _check_dataset_for_near_field(dataset, body, solver)
-    freq_type = _check_motion_amplitude_for_near_field(first_order_motion_amplitude, dataset, body)
-
-    first_order_motion_amplitude = first_order_motion_amplitude.transpose(freq_type, "wave_direction", "radiating_dof")
-    motion_amplitude = first_order_motion_amplitude.sel(radiating_dof=list(body.dofs)).values
-    dataset = dataset.sel({freq_type: first_order_motion_amplitude.coords[freq_type].values,
-                           "wave_direction": first_order_motion_amplitude.coords["wave_direction"].values})
-    return solver, floating_body, freq_type, motion_amplitude, dataset
-
-
-def _check_dataset_for_near_field(dataset, body, solver):
+def _check_inputs_for_near_field(dataset, body, solver):
     """Shallow consistency checks of the dataset input of `near_field_mean_drift_force`."""
     if dataset.attrs.get("method") == "direct":
         raise ValueError("The near field mean drift force needs the source distributions of the indirect method, "
@@ -385,6 +350,15 @@ def _check_dataset_for_near_field(dataset, body, solver):
             raise ValueError(f"The near field mean drift force needs the coordinate {name} in the dataset.")
     if body.lid_mesh is None and "lid_face" in dataset.dims:
         raise ValueError(f"The dataset has been computed with a lid, but {body} has no lid mesh.")
+    if not isinstance(body, (FloatingBody, Multibody)):
+        raise NotImplementedError(
+            f"The near field mean drift force is only implemented for a FloatingBody or a Multibody, not for {body}."
+        )
+    if not all(isinstance(dof, AbstractDof) for dof in body.dofs.values()):
+        raise NotImplementedError(
+            "The near field mean drift force is only implemented for dofs defined as AbstractDof "
+            "(e.g. TranslationDof, RotationDof, CustomDof), not as arrays."
+        )
     if dataset.sizes["hull_face"] != body.mesh.nb_faces or (body.lid_mesh is not None and dataset.sizes["lid_face"] != body.lid_mesh.nb_faces):
         raise ValueError(f"The faces of the dataset do not match the mesh of {body}.")
     # With `mesh=True`, the dataset also stores the faces centers.
@@ -392,9 +366,6 @@ def _check_dataset_for_near_field(dataset, body, solver):
         raise ValueError(f"The faces of the dataset do not match the mesh of {body}.")
     if "lid_mesh_faces_center" in dataset and not np.allclose(dataset["lid_mesh_faces_center"].values, body.lid_mesh.faces_centers):
         raise ValueError(f"The faces of the lid of the dataset do not match the lid mesh of {body}.")
-    missing_dofs = set(body.dofs) - set(dataset.coords["radiating_dof"].values)
-    if len(missing_dofs) > 0:
-        raise ValueError(f"The dataset does not contain the radiation problems of the dofs {sorted(missing_dofs)}.")
     # Only the Green function matters to evaluate the potential from the source distributions.
     green_function = getattr(solver.engine, "green_function", None)
     green_function_settings = green_function.exportable_settings if green_function is not None else {}
@@ -404,21 +375,57 @@ def _check_dataset_for_near_field(dataset, body, solver):
                         f"({dataset.attrs[key]}): the potential evaluated from the source distributions might be inconsistent.")
 
 
-def _check_motion_amplitude_for_near_field(first_order_motion_amplitude, dataset, body):
-    """Check that `first_order_motion_amplitude` matches the dataset, and return the name of its frequency dimension."""
-    freq_types = [d for d in first_order_motion_amplitude.dims if d not in {"wave_direction", "radiating_dof"}]
-    if len(freq_types) != 1 or freq_types[0] not in dataset.coords:
-        raise ValueError("The first order motion amplitude should have the dimensions 'wave_direction', 'radiating_dof' "
-                         f"and a frequency dimension of the dataset, got {first_order_motion_amplitude.dims}.")
-    freq_type, = freq_types
-    for name in [freq_type, "wave_direction"]:
-        missing = set(first_order_motion_amplitude.coords[name].values) - set(dataset.coords[name].values)
-        if len(missing) > 0:
-            raise ValueError(f"The values {sorted(missing)} of {name} of the first order motion amplitude are not in the dataset.")
-    missing_dofs = set(body.dofs) - set(first_order_motion_amplitude.coords["radiating_dof"].values)
-    if len(missing_dofs) > 0:
-        raise ValueError(f"The first order motion amplitude does not contain the dofs {sorted(missing_dofs)}.")
-    return freq_type
+def _align_coordinates(motion_amplitude, dataset, body):
+    """Restrict the inputs of `near_field_mean_drift_force` to the frequencies and wave directions
+    common to `motion_amplitude` and `dataset`, and to the dofs common to them and `body`.
+    A warning is displayed when some values are dropped, and an error when nothing is left.
+
+    Returns
+    -------
+    motion_amplitude: DataArray of dims (freq_type, "wave_direction", "radiating_dof")
+    dataset: Dataset, at the same frequencies and wave directions, in the same order
+    body: FloatingBody, with only the common dofs
+    freq_type: str
+    """
+    frequency_keys = set(motion_amplitude.dims) & set(dataset.dims) & {'omega', 'freq', 'period', 'wavelength', 'wavenumber'}
+    if len(frequency_keys) == 1:
+        freq_type = list(frequency_keys)[0]
+    else:
+        raise ValueError("Cannot identify dimension holding the frequency in the inputs of `near_field_mean_drift_force`")
+
+    def intersection(name, values, *others):
+        # Keep the order of `values`
+        common = [v for v in values if all(v in other for other in others)]
+        if len(common) == 0:
+            raise ValueError(f"The inputs of `near_field_mean_drift_force` have no common {name}.")
+        if any(len(common) != len(set(other)) for other in (values, *others)):
+            LOG.warning(f"The inputs of `near_field_mean_drift_force` do not have the same {name}: "
+                        f"the near field mean drift force is computed only for the common ones.")
+        return common
+
+    freqs = intersection(
+        freq_type,
+        motion_amplitude.coords[freq_type].values,
+        dataset.coords[freq_type].values
+    )
+    wave_dirs = intersection(
+        "wave_direction",
+        motion_amplitude.coords["wave_direction"].values,
+        dataset.coords["wave_direction"].values
+    )
+    dofs = intersection(
+        "radiating_dof",
+        list(body.dofs),
+        motion_amplitude.coords["radiating_dof"].values,
+        dataset.coords["radiating_dof"].values
+    )
+
+    all_coords = {freq_type: freqs, "wave_direction": wave_dirs, "radiating_dof": dofs}
+    motion_amplitude = motion_amplitude.sel(**all_coords).transpose(freq_type, "wave_direction", "radiating_dof")
+    dataset = dataset.sel(**all_coords)
+    if len(dofs) < len(body.dofs):
+        body = body.with_only_dofs(dofs)
+    return motion_amplitude, dataset, body, freq_type
 
 
 def _sources_on_mesh_including_lid(dataset, kind, leading_dim, body):

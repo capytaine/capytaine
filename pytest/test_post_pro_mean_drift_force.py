@@ -352,12 +352,32 @@ def test_near_field_mean_drift_force_with_inconsistent_inputs():
     body_without_lid = cpt.FloatingBody(mesh=body.mesh, dofs=body.dofs, name=body.name)
     with pytest.raises(ValueError, match="lid"):
         near_field_mean_drift_force(rao, dataset, body_without_lid, solver=solver)
-    with pytest.raises(ValueError, match="radiation problems of the dofs"):
-        near_field_mean_drift_force(rao.isel(radiating_dof=slice(1, None)), dataset.isel(radiating_dof=slice(1, None)), body, solver=solver)
-    with pytest.raises(ValueError, match="not in the dataset"):
-        near_field_mean_drift_force(rao.assign_coords(omega=[1.0, 1.6]), dataset, body, solver=solver)
+    with pytest.raises(ValueError, match="no common omega"):
+        near_field_mean_drift_force(rao.assign_coords(omega=[1.1, 1.6]), dataset, body, solver=solver)
+    with pytest.raises(ValueError, match="no common radiating_dof"):
+        near_field_mean_drift_force(rao.isel(radiating_dof=slice(0, 3)), dataset.isel(radiating_dof=slice(3, None)), body, solver=solver)
     with pytest.raises(NotImplementedError, match="single value of rho"):
         near_field_mean_drift_force(rao, xr.concat([dataset, dataset.assign_coords(rho=1025.0)], dim="rho"), body, solver=solver)
+
+
+def test_near_field_mean_drift_force_on_intersection_of_inputs(caplog):
+    body, dataset, rao = dataset_and_rao_of_sphere_with_lid()
+    solver = helpers.solver()
+    with caplog.at_level("WARNING"):
+        reference = near_field_mean_drift_force(rao, dataset, body, solver=solver)["near_field_mean_drift_force"]
+    assert "common" not in caplog.text
+    with caplog.at_level("WARNING"):
+        force = near_field_mean_drift_force(rao.assign_coords(omega=[1.0, 1.6]), dataset, body, solver=solver)["near_field_mean_drift_force"]
+    assert "same omega" in caplog.text
+    np.testing.assert_allclose(force.values, reference.sel(omega=[1.0]).values, rtol=1e-12)
+    caplog.clear()
+    dofs = list(body.dofs)
+    with caplog.at_level("WARNING"):
+        force = near_field_mean_drift_force(rao.sel(radiating_dof=dofs[:4]), dataset.sel(radiating_dof=dofs[1:]), body, solver=solver)["near_field_mean_drift_force"]
+    assert "same radiating_dof" in caplog.text
+    assert list(force.coords["influenced_dof"].values) == dofs[1:4]
+    expected = near_field_mean_drift_force(rao.sel(radiating_dof=dofs[1:4]), dataset, body.with_only_dofs(dofs[1:4]), solver=solver)["near_field_mean_drift_force"]
+    np.testing.assert_allclose(force.values, expected.values, rtol=1e-12)
 
 
 def test_near_field_mean_drift_force_with_rao_in_another_order():
