@@ -315,7 +315,12 @@ def _first_order_fields_from_dataset(dataset, body, mesh, solver, q1):
     if not np.all(np.isfinite(sources)):
         raise ValueError(f"The dataset contains missing (NaN) source distributions at omega={omega}, needed for the near field mean drift force.")
     gf_params = dict(free_surface=0.0, water_depth=water_depth, wavenumber=float(dataset.coords["wavenumber"]))
-    grad_phi1_hull = solver._compute_potential_gradient_from_sources(mesh, body.mesh_including_lid, sources, **gf_params)
+    grad_phi1_hull = solver._compute_potential_gradient_from_sources(
+            mesh, body.mesh_including_lid, sources, diagonal_term_in_double_layer=False, **gf_params)
+    # The self-influence term of each hull face (σ n / 2, the limit of the gradient on the fluid side) is added
+    # explicitly rather than on the diagonal of the influence matrix, since the hull faces are not the first ones
+    # of the mesh including lid (e.g. for a symmetric mesh with a lid).
+    grad_phi1_hull += sources[..., body.hull_mask, None] * mesh.faces_normals / 2
     phi1_waterline = solver._compute_potential_from_sources(mesh.middle_edges_waterline, body.mesh_including_lid, sources, **gf_params)
     p1_waterline = 1j * omega * rho * phi1_waterline
 
