@@ -346,6 +346,22 @@ def test_sources_of_dataset_on_interleaved_hull_and_lid():
     np.testing.assert_allclose(sources, np.array([r.sources for r in results[2:]]), rtol=1e-12)
 
 
+def test_near_field_mean_drift_force_of_symmetric_body_with_lid():
+    # The faces of the hull and of the lid alternate in the mesh including lid (see above):
+    # the self-influence term of the velocity on the hull should still be added on the right panels.
+    body_sym = helpers.small_sphere_body("rigid", plane_symmetry=True, lid=True)
+    body = cpt.FloatingBody(mesh=body_sym.mesh.merged(), lid_mesh=body_sym.lid_mesh.merged(),
+                            dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, 0)), center_of_mass=(0, 0, 0))
+    forces = []
+    for b in [body_sym, body]:
+        test_matrix = xr.Dataset(coords={'omega': [1.0], 'wave_direction': [0.0, np.pi/3], 'radiating_dof': list(b.dofs)})
+        dataset = helpers.solver().fill_dataset(test_matrix, b, keep_details=True, hydrostatics=False)
+        rao = xr.DataArray(np.full((1, 2, 6), 0.1 + 0.2j), dims=["omega", "wave_direction", "radiating_dof"],
+                           coords={"omega": [1.0], "wave_direction": [0.0, np.pi/3], "radiating_dof": list(b.dofs)})
+        forces.append(near_field_mean_drift_force(rao, dataset, b, solver=helpers.solver())["near_field_mean_drift_force"])
+    np.testing.assert_allclose(forces[0].values, forces[1].values, rtol=1e-6, atol=1e-6*np.abs(forces[1].values).max())
+
+
 def test_near_field_mean_drift_force_with_inconsistent_inputs():
     body, dataset, rao = dataset_and_rao_of_sphere_with_lid()
     solver = helpers.solver()
