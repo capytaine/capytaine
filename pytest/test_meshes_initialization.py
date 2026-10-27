@@ -358,3 +358,18 @@ def test_degenerate_vertices_indices_in_face(caplog):
     assert "Dropping 1 degenerate faces" in caplog.text
     assert mesh.faces_metadata["scalar"].shape == (1,)
     assert mesh.faces_metadata["vector"].shape == (1, 3)
+
+
+def test_extract_faces_with_metadata():
+    mesh = Mesh.from_list_of_faces(
+        [
+            [[float(i), 0.0, 0.0], [i+1.0, 0.0, 0.0], [i+1.0, 1.0, 0.0], [float(i), 1.0, 0.0]]
+            for i in range(4)
+        ],
+        faces_metadata={"foo": np.arange(4.0)}
+    )
+    for faces_id in ([1, 3], np.array([1, 3]), slice(1, None, 2), np.array([False, True, False, True])):
+        extracted = mesh.extract_faces(faces_id)
+        assert extracted.nb_faces == 2
+        assert np.allclose(extracted.faces_centers, mesh.faces_centers[[1, 3], :])
+        assert np.allclose(extracted.faces_metadata["foo"], [1.0, 3.0])

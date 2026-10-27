@@ -59,6 +59,8 @@ Bug fixes
 
 * Fix the hash of Green functions, which depended on the identity of the object instead of on its settings: two identical Green functions now have the same hash.
 
+* Fix :meth:`~capytaine.meshes.meshes.Mesh.extract_faces` on a mesh with faces metadata, that was failing. It now also accepts a slice or a boolean mask to select the faces.
+
 Internals
 ~~~~~~~~~
 
