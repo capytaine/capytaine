@@ -142,3 +142,59 @@ def test_pressure_on_hull_with_symmetric_mesh_and_lid():
             np.sort_complex(ref_res.pressure_on_hull),
             rtol=1e-3,
             )
+
+
+#######################################################################
+#                Assembly of the distributions on faces               #
+#######################################################################
+
+def test_face_distributions_with_gaps_in_the_test_matrix():
+    body = helpers.small_sphere_body(["Heave", "Surge"], lid=True)
+    problems = [
+        cpt.RadiationProblem(body=body, omega=1.0, radiating_dof="Heave"),
+        cpt.RadiationProblem(body=body, omega=1.0, radiating_dof="Surge"),
+        cpt.RadiationProblem(body=body, omega=2.0, radiating_dof="Heave"),
+        cpt.DiffractionProblem(body=body, omega=1.0, wave_direction=0.0),
+        cpt.DiffractionProblem(body=body, omega=1.0, wave_direction=np.pi/3),
+        cpt.DiffractionProblem(body=body, omega=2.0, wave_direction=0.0),
+    ]
+    results = helpers.solver().solve_all(problems, keep_details=True)
+    dataset = cpt.assemble_dataset(results)
+
+    for res in results:
+        if isinstance(res.problem, cpt.RadiationProblem):
+            sel = dict(omega=res.omega, radiating_dof=res.problem.radiating_dof)
+            kind = "radiation"
+        else:
+            sel = dict(omega=res.omega, wave_direction=res.problem.wave_direction)
+            kind = "diffraction"
+        np.testing.assert_array_equal(dataset[f"pressure_{kind}"].sel(**sel).values, res.pressure[body.hull_mask])
+        np.testing.assert_array_equal(dataset[f"sources_{kind}"].sel(**sel).values, res.sources[body.hull_mask])
+        np.testing.assert_array_equal(dataset[f"sources_lid_{kind}"].sel(**sel).values, res.sources[~body.hull_mask])
+
+    for var in ("pressure_radiation", "sources_radiation", "sources_lid_radiation"):
+        assert np.all(np.isnan(dataset[var].sel(omega=2.0, radiating_dof="Surge").values))
+    for var in ("pressure_diffraction", "pressure_Froude_Krylov", "sources_diffraction", "sources_lid_diffraction"):
+        assert np.all(np.isnan(dataset[var].sel(omega=2.0, wave_direction=np.pi/3).values))
+    assert not np.any(np.isnan(dataset["pressure_Froude_Krylov"].sel(omega=1.0).values))
+
+
+def test_mixing_direct_and_indirect_results_raises():
+    body = helpers.small_sphere_body(["Heave"])
+    results = [
+        helpers.solver(method="indirect").solve(cpt.RadiationProblem(body=body, omega=1.0), keep_details=True),
+        helpers.solver(method="direct").solve(cpt.RadiationProblem(body=body, omega=2.0), keep_details=True),
+    ]
+    with pytest.raises(ValueError, match="direct and the indirect"):
+        cpt.assemble_dataset(results)
+
+
+def test_mixing_direct_and_indirect_results_without_details():
+    body = helpers.small_sphere_body(["Heave"])
+    results = [
+        helpers.solver(method="indirect").solve(cpt.RadiationProblem(body=body, omega=1.0), keep_details=False),
+        helpers.solver(method="direct").solve(cpt.RadiationProblem(body=body, omega=2.0), keep_details=False),
+    ]
+    dataset = cpt.assemble_dataset(results)
+    assert dataset.sizes["omega"] == 2
+    assert not np.any(np.isnan(dataset["added_mass"].values))

@@ -27,6 +27,7 @@ Major changes
   When set to ``True``, the pressure field on the hull is kept for each problem and automatically included in the returned dataset as the data variables ``pressure_diffraction``, ``pressure_Froude_Krylov`` and ``pressure_radiation``.
   The source distribution of the indirect method is also stored, as ``sources_diffraction`` and ``sources_radiation`` (on the hull, with dimension ``hull_face``) and ``sources_lid_diffraction`` and ``sources_lid_radiation`` (on the lid, if any, with dimension ``lid_face``).
   With the direct method, the potential is stored instead, as ``potential_diffraction``, ``potential_radiation``, ``potential_lid_diffraction`` and ``potential_lid_radiation``.
+  Results of the direct and indirect methods solved with ``keep_details=True`` cannot be assembled in the same dataset (they can with ``keep_details=False``).
   See :doc:`user_manual/post_pro` for more details.
 
 * The ``mesh=True`` option of :func:`~capytaine.io.xarray.assemble_dataset` and :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` now stores the full mesh of the hull (and lid, if any) and the dofs of the body in the dataset, as the data variables ``mesh_vertices``, ``mesh_faces_center``, ``lid_mesh_vertices``, ``lid_mesh_faces_center``, ``dof_motions`` and ``dof_gradient_of_motions``, instead of just the number of faces.
