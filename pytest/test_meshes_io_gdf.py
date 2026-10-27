@@ -14,7 +14,11 @@
 
 """Tests for the mesh import of mesh from WAMIT file format"""
 
+import logging
 from io import StringIO
+
+import pytest
+import numpy as np
 
 from capytaine.meshes.io import load_mesh
 from capytaine.meshes import Mesh, ReflectionSymmetricMesh
@@ -132,3 +136,118 @@ def test_gdf_xy_symmetry():
     assert mesh.nb_faces == 8
     assert mesh.plane == "yOz"  # Outer symmetry
     assert mesh.half.plane == "xOz"  # Inner symmetry
+
+
+def test_gdf_trailing_tokens_and_npand_line():
+    """Panel number after the last vertex of each panel and trailing NPAND line, as in some WAMIT files."""
+    mesh = parse_gdf(
+        """Mesh description
+        1.0  9.81
+        0 0
+        2
+        0.0 0.0 -1.0
+        1.0 0.0 -1.0
+        1.0 1.0 -1.0
+        0.0 1.0 -1.0   1
+        1.0 0.0 -1.0
+        2.0 0.0 -1.0
+        2.0 1.0 -1.0
+        1.0 1.0 -1.0   2
+        0   NPAND
+    """
+    )
+    assert mesh.nb_faces == 2
+    np.testing.assert_allclose(mesh.vertices[mesh.faces[1]][:, 0], [1.0, 2.0, 2.0, 1.0])
+
+
+def test_gdf_panel_split_over_uneven_lines():
+    mesh = parse_gdf(
+        """Mesh description
+        1.0  9.81
+        0 0
+        2
+        0.0 0.0 -1.0 1.0 0.0 -1.0
+        1.0 1.0 -1.0 0.0 1.0 -1.0
+        1.0 0.0 -1.0 2.0 0.0 -1.0 2.0 1.0
+        -1.0 1.0 1.0 -1.0
+    """
+    )
+    assert mesh.nb_faces == 2
+
+
+def test_gdf_commas_and_d_exponents():
+    mesh = parse_gdf(
+        """Mesh description
+        1.0D0, 9.80665D0
+        0, 0
+        1
+        0.0D0, 0.0D0, -1.0D0, 1.0d0, 0.0, -1.0, 1.0, 1.0, -1.0, 0.0, 1.0, -1.0
+    """
+    )
+    assert mesh.nb_faces == 1
+    np.testing.assert_allclose(mesh.vertices[:, 2], -1.0)
+
+
+def test_gdf_missing_panels():
+    with pytest.raises(ValueError, match="ends after 1 panels"):
+        parse_gdf(
+            """Mesh description
+            1.0  9.81
+            0 0
+            2
+            0.0 0.0 -1.0 1.0 0.0 -1.0 1.0 1.0 -1.0 0.0 1.0 -1.0
+        """
+        )
+
+
+def test_gdf_dipole_panels_warning(caplog):
+    with caplog.at_level(logging.WARNING):
+        mesh = parse_gdf(
+            """Mesh description
+            1.0  9.81
+            0 0
+            1
+            0.0 0.0 -1.0 1.0 0.0 -1.0 1.0 1.0 -1.0 0.0 1.0 -1.0
+            1
+            0.0 0.0 -2.0 1.0 0.0 -2.0 1.0 1.0 -2.0 0.0 1.0 -2.0
+        """
+        )
+    assert mesh.nb_faces == 1
+    assert "dipole panels" in caplog.text
+
+
+def test_gdf_walls_not_supported():
+    with pytest.raises(ValueError, match="symmetry indices"):
+        parse_gdf(
+            """Mesh description
+            1.0  9.81
+            -2 0
+            1
+            0.0 0.0 -1.0 1.0 0.0 -1.0 1.0 1.0 -1.0 0.0 1.0 -1.0
+        """
+        )
+
+
+def test_gdf_higher_order_low_order_patches():
+    """Higher-order GDF file with flat patches (IGDEF=0) has the same format."""
+    mesh = parse_gdf(
+        """Mesh description
+        1.0  9.81
+        0 0
+        1 0
+        0.0 0.0 -1.0 1.0 0.0 -1.0 1.0 1.0 -1.0 0.0 1.0 -1.0
+    """
+    )
+    assert mesh.nb_faces == 1
+
+
+def test_gdf_higher_order_b_splines_not_supported():
+    with pytest.raises(ValueError, match="IGDEF=1"):
+        parse_gdf(
+            """Mesh description
+            1.0  9.81
+            0 0
+            1 1
+            0.0 0.0 -1.0 1.0 0.0 -1.0 1.0 1.0 -1.0 0.0 1.0 -1.0
+        """
+        )

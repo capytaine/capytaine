@@ -331,22 +331,65 @@ def _read_hst(file_obj: IOBase) -> Union[Mesh, ReflectionSymmetricMesh]:
         return Mesh(vertices, faces)
 
 
+def _fortran_tokens(line: str) -> list:
+    """Split a line as a Fortran list-directed READ would (blanks or commas as separators)."""
+    return line.replace(",", " ").split()
+
+
+def _fortran_float(token: str) -> float:
+    """Parse a Fortran real, possibly with a D exponent (e.g. 1.0D0)."""
+    return float(token.replace("D", "E").replace("d", "e"))
+
+
 def _read_gdf(file_obj: IOBase) -> Union[Mesh, ReflectionSymmetricMesh]:
+    """Low-order WAMIT GDF file.
+
+    As in WAMIT, the 12 coordinates of each panel are read by a single list-directed READ:
+    they can be spread over several lines, and the remaining tokens of the last line
+    (e.g. a panel number) are ignored. Anything after the NPAN panels is ignored, except
+    for a warning about the dipole panels of the Version 6 format."""
     title = file_obj.readline()
-    ulen, grav = map(float, file_obj.readline().split()[:2])
-    isx, isy = map(int, file_obj.readline().split()[:2])
-    npan = int(file_obj.readline().split()[0])
-    faces_vertices = np.genfromtxt(file_obj)
+    ulen, grav = map(_fortran_float, _fortran_tokens(file_obj.readline())[:2])
+    isx, isy = map(int, _fortran_tokens(file_obj.readline())[:2])
+    if isx not in (0, 1) or isy not in (0, 1):
+        raise ValueError(
+            f"In GDF file, unsupported symmetry indices ISX={isx}, ISY={isy}: only 0 or 1 are supported "
+        )
+    npan_line = _fortran_tokens(file_obj.readline())
+    npan = int(npan_line[0])
+    if len(npan_line) > 1 and npan_line[1].lstrip("+-").isdigit() and int(npan_line[1]) != 0:
+        raise ValueError(
+            f"In GDF file, IGDEF={npan_line[1]} is not supported: "
+            "only the geometry defined by flat panels (IGDEF=0) can be loaded."
+        )
+
+    faces_vertices = np.empty((npan, 12))
+    for i_panel in range(npan):
+        tokens = []
+        while len(tokens) < 12:
+            line = file_obj.readline()
+            if line == "":
+                raise ValueError(
+                    f"In GDF file, NPAN={npan} panels are announced, but the file ends after {i_panel} panels."
+                )
+            tokens.extend(_fortran_tokens(line))
+        faces_vertices[i_panel, :] = [_fortran_float(t) for t in tokens[:12]]
+
+    # In the format of WAMIT Version 6, NPAN only counts the conventional panels,
+    # and is followed by the number NPAND of dipole panels and their coordinates.
+    for line in file_obj:
+        tokens = _fortran_tokens(line)
+        if len(tokens) > 0:
+            if tokens[0].isdigit() and int(tokens[0]) > 0:
+                LOG.warning(
+                    f"The GDF file seems to define {tokens[0]} dipole panels (zero-thickness elements) "
+                    f"after its NPAN={npan} panels. They are not supported and have been ignored."
+                )
+            break
 
     faces_vertices = faces_vertices.reshape(-1, 3)
     vertices, indices = np.unique(faces_vertices, axis=0, return_inverse=True)
     faces = indices.reshape(-1, 4)
-
-    if faces.shape[0] != npan:
-        raise ValueError(
-            f"In GDF file, npan value: {npan} is not equal to face count: \
-                {faces.shape[0]}."
-        )
 
     if isx == 1 and isy == 1:
         return ReflectionSymmetricMesh(
