@@ -475,15 +475,11 @@ class BEMSolver:
         batch_shape = tuple(sources.shape[:-1])
         with self.timer(step="Post-processing velocity"):
             gradG = self.engine.build_fullK_matrix(points, mesh, **gf_params)
-            # gradG is either:
-            # - an array of shape (3, nb_points, mesh.nb_faces)
-            # - a 3-ple of matrices of the shape (nb_points, mesh.nb_faces), that could be stored as LazyMatrix.
-            rhs = sources.reshape(-1, sources.shape[-1]).T
-            vx, vy, vz = (to_numpy(self._matmul(gradG[i, ...], rhs)) for i in range(3))
-            # The matrix-matrix product here computes the integral over the mesh of the contributions of each panel in the mesh
-            velocities = np.stack([vx.T, vy.T, vz.T], axis=-1)
-            # velocities.shape = (nb_sources, nb_points, 3)
-        return velocities.reshape((*batch_shape, *output_shape, 3))
+            # gradG is an array of shape (3, nb_points, mesh.nb_faces), possibly lazy in the nb_points dimension
+            # sources is an array of shape (..., mesh.nb_faces), leading dimensions can be used for batch computation
+            velocities = to_numpy(self._matmul(gradG, sources[..., None, :, None]))
+            # velocities.shape = (..., 3, nb_points, 1)
+        return np.moveaxis(velocities[..., 0], -1, -2).reshape(*batch_shape, *output_shape, 3)
 
     def compute_potential(self, points, result):
         """Compute the value of the potential at given points for a previously solved potential flow problem.

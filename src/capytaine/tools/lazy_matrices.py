@@ -38,15 +38,17 @@ def slices(start, stop, chunk_size):
 class LazyMatrix:
     def __init__(self, row_constructor, shape, *, chunk_size=10, dtype=float, array_backend=None, device="cpu"):
         """
-        A matrix (2D array) that is never fully stored in memory, but instead recomputed from a `row_constructor` method when required.
+        A matrix (2D array) or a stack of matrices that is never fully stored in memory,
+        but instead recomputed from a `row_constructor` method when required.
 
         Parameters
         ----------
         row_constructor: callable
             Function returning an array containing a few rows of the matrix.
-            We assume that row_constructor(slice(n, n+m)) returns an array of shape (m, d) corresponding to the m rows of indices between n and n+m.
+            We assume that row_constructor(slice(n, n+m)) returns an array of shape (..., m, d)
+            corresponding to the m rows of indices between n and n+m.
             The dtype, array library and device of the output of row_constructor should match the ones given below.
-        shape: 2-ple of int
+        shape: tuple of int
             The shape of the matrix.
         chunk_size: int
             The number of row requested to row_constructor at each call.
@@ -61,8 +63,8 @@ class LazyMatrix:
         self.shape = shape
         self.chunk_size = chunk_size
         self.dtype = dtype
-        self.ndim = 2  # Other shapes not implemented
-        self._slices = list(slices(0, self.shape[0], self.chunk_size))
+        self.ndim = len(shape)
+        self._slices = list(slices(0, self.shape[-2], self.chunk_size))
         self._array_backend = array_namespace(np.empty(0)) if array_backend is None else array_backend
         self.device = device
 
@@ -73,7 +75,7 @@ class LazyMatrix:
         if not copy:
             raise NotImplementedError
         rows = [to_numpy(self.row_constructor(sl)) for sl in self._slices]
-        matrix = np.concatenate(rows)
+        matrix = np.concatenate(rows, axis=-2)
         # `self.dtype` is not used because it can be a dtype of another array library.
         return matrix if dtype is None else matrix.astype(dtype)
 
@@ -82,7 +84,7 @@ class LazyMatrix:
             # Matrix-vector and matrix-matrix products (with a 2D right-hand side of shape (shape[1], k)) are implemented
             # Compute `chunk_size` rows and multiply them by `other`
             output_chunks = [self.row_constructor(sl) @ other for sl in self._slices]
-            return self._array_backend.concat(output_chunks)
+            return self._array_backend.concat(output_chunks, axis=-2)
         else:
             return NotImplemented
             # Usually fallback on building the full NumPy matrix with __array__ above.
