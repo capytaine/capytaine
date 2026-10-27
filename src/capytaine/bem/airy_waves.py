@@ -98,12 +98,6 @@ def airy_waves_pressure(points, pb):
     return 1j * float(pb.omega) * pb.rho * airy_waves_potential(points, pb)
 
 
-def airy_waves_pressure_dataarray(pb):
-    import xarray as xr
-    da = xr.DataArray(airy_waves_pressure(pb.body.mesh, pb), dims=["hull_face"], name="pressure")
-    return pb._wrap_dataarray(da)
-
-
 def froude_krylov_force(pb):
     return pb.body.integrate_pressure(airy_waves_pressure(pb.body.mesh.faces_centers, pb))
 
