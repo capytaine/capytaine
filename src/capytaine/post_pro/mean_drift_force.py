@@ -485,7 +485,7 @@ def _near_field_output_dataset(first_order_motion_amplitude, freq_type, body, me
                  )
         output["mesh_waterline"] = xr.DataArray(
                 mesh.vertices[mesh.edges_waterline, :],
-                dims=["waterline_segment", "point_per_segment", "space_coordinate"],
+                dims=["waterline_segment", "vertices_of_segment", "space_coordinate"],
                 )
 
     return output

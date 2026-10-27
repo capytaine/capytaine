@@ -36,7 +36,7 @@ from capytaine.bodies.dofs import AbstractDof
 from capytaine.bem.problems_and_results import (
     LinearPotentialFlowProblem, DiffractionProblem, RadiationProblem,
     LinearPotentialFlowResult, _default_parameters)
-from capytaine.bem.airy_waves import airy_waves_pressure_dataarray
+from capytaine.bem.airy_waves import airy_waves_pressure
 from capytaine.post_pro.kochin import compute_kochin
 from capytaine.io.bemio import dataframe_from_bemio
 
@@ -511,40 +511,37 @@ VARIABLES_ATTRIBUTES = {
         }
 
 
-def _face_data_array(result, name, values, on_hull):
-    """Part of a distribution defined on all the faces of the mesh including lid
-    (`values`, or None if missing) that is on the hull (or on the lid), as a
-    DataArray with the metadata of the problem.
+def _build_face_distribution(results, values, on_hull, freq_type, optional_dims):
+    """DataArray of the part on the hull (or on the lid) of the distributions
+    `values(result)`, defined on all the faces of the mesh including lid (or
+    None if missing), for results of problems of the same class.
+    Returns None if there is nothing to store.
+
     The hull and lid are separated with the hull mask of the body, the order of
-    the faces in the mesh including lid being not necessarily hull first."""
-    mask = result.body.hull_mask
+    the faces in the mesh including lid being not necessarily hull first.
+    The array is allocated once and filled problem by problem (merging one
+    DataArray per problem would reindex each of them on the full grid)."""
+    all_values = [values(r) for r in results]
+    if all(v is None for v in all_values) or (not on_hull and all(r.body.lid_mesh is None for r in results)):
+        return None
+
+    radiation = isinstance(results[0].problem, RadiationProblem)
+    problem_dims = ['g', 'rho', 'water_depth', 'forward_speed', freq_type, 'wave_direction']
+    if radiation:
+        problem_dims.append('radiating_dof')
+    keys = [tuple(r.problem._asdict()[d] for d in problem_dims) for r in results]
+    coords = {d: sorted({k[i] for k in keys}) for i, d in enumerate(problem_dims)}
+    position = {d: {c: i for i, c in enumerate(coords[d])} for d in problem_dims}
+
+    mask = results[0].body.hull_mask  # Same body for all results (checked in assemble_dataset)
     mask = mask if on_hull else ~mask
-    if values is None:
-        values = np.full((int(np.count_nonzero(mask)),), np.nan + 1j*np.nan)
-    else:
-        values = np.asarray(values)[mask]
-    dataarray = xr.DataArray(values, dims=["hull_face" if on_hull else "lid_face"], name=name)
-    return result.problem._wrap_dataarray(dataarray)
+    array = np.full([len(coords[d]) for d in problem_dims] + [int(np.count_nonzero(mask))], np.nan + 1j*np.nan)
+    for key, v in zip(keys, all_values):
+        if v is not None:  # e.g. failed resolution: left as NaN
+            array[tuple(position[d][c] for d, c in zip(problem_dims, key))] = np.asarray(v)[mask]
 
-
-def _add_face_distributions(dataset, results, name, optional_dims, lid=True):
-    """Add to the dataset the variables '<name>_diffraction' and '<name>_radiation'
-    (and '<name>_lid_diffraction', '<name>_lid_radiation' on the lid, if `lid`) for the distributions `name` of the results."""
-    if not any(getattr(r, name) is not None for r in results):
-        return
-    for kind, problem_class, dims in [
-            ("diffraction", DiffractionProblem, optional_dims),
-            ("radiation", RadiationProblem, optional_dims + ['wave_direction'])]:
-        selected = [r for r in results if isinstance(r.problem, problem_class)]
-        if len(selected) == 0:
-            continue
-        for on_hull, var_name in [(True, f"{name}_{kind}"), (False, f"{name}_lid_{kind}")]:
-            if not on_hull and (not lid or all(r.body.lid_mesh is None for r in selected)):
-                continue
-            dataset[var_name] = _squeeze_dimensions(xr.merge(
-                [_face_data_array(r, "distribution", getattr(r, name), on_hull) for r in selected],
-                compat="no_conflicts", join="outer"
-                )["distribution"], dimensions=dims)
+    dataarray = xr.DataArray(array, dims=problem_dims + ["hull_face" if on_hull else "lid_face"], coords=coords)
+    return _squeeze_dimensions(dataarray, dimensions=optional_dims + (['wave_direction'] if radiation else []))
 
 
 def assemble_dataset(results,
@@ -798,20 +795,31 @@ def assemble_dataset(results,
     else:
         results_with_free_surface = []
 
-    # No pressure on the lid: it is not a physical surface.
-    _add_face_distributions(dataset, results_with_free_surface, "pressure", optional_dims, lid=False)
-    if "pressure_diffraction" in dataset:
-        dataset["pressure_Froude_Krylov"] = _squeeze_dimensions(xr.merge(
-                [airy_waves_pressure_dataarray(r.problem) for r in results_with_free_surface if isinstance(r.problem, DiffractionProblem)],
-                compat="no_conflicts", join="outer"
-                )['pressure'], dimensions=optional_dims)
-
     # Indirect method: sources. Direct method: potential (which is then the unknown of the linear system)
     # (The potential is not stored for the indirect method, since it can be recomputed from the sources.)
-    _add_face_distributions(dataset, [r for r in results_with_free_surface if r.sources is not None],
-                            "sources", optional_dims)
-    _add_face_distributions(dataset, [r for r in results_with_free_surface if r.sources is None],
-                            "potential", optional_dims)
+    if any(r.sources is not None for r in results_with_free_surface):
+        if any(r.sources is None and r.potential is not None for r in results_with_free_surface):
+            raise ValueError("Results from the direct and the indirect methods cannot be assembled in the same dataset.")
+        unknown = "sources"
+    else:
+        unknown = "potential"
+
+    for kind, problem_class in [("diffraction", DiffractionProblem), ("radiation", RadiationProblem)]:
+        selected = [r for r in results_with_free_surface if isinstance(r.problem, problem_class)]
+        if len(selected) == 0:
+            continue
+        variables = {  # name: (values, on_hull)
+            # No pressure on the lid: it is not a physical surface.
+            f"pressure_{kind}": (lambda r: r.pressure, True),
+            f"{unknown}_{kind}": (lambda r: getattr(r, unknown), True),
+            f"{unknown}_lid_{kind}": (lambda r: getattr(r, unknown), False),
+            }
+        if kind == "diffraction" and any(r.pressure is not None for r in selected):
+            variables["pressure_Froude_Krylov"] = (lambda r: airy_waves_pressure(r.body.mesh_including_lid, r.problem), True)
+        for name, (values, on_hull) in variables.items():
+            dataarray = _build_face_distribution(selected, values, on_hull, main_freq_type, optional_dims)
+            if dataarray is not None:
+                dataset[name] = dataarray
 
     for var in set(dataset) | set(dataset.coords):
         if var in VARIABLES_ATTRIBUTES:
