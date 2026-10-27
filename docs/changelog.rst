@@ -52,6 +52,9 @@ Bug fixes
 
 * Fix double layer term when computing the value at field points without a free surface.
 
+* The GDF reader of :func:`~capytaine.meshes.io.load_mesh` now follows the free format of WAMIT: the coordinates of a panel can be spread over any number of lines, extra tokens after them (e.g. a panel number) and lines after the ``NPAN`` panels (e.g. ``NPAND``) are ignored, and commas and ``D`` exponents are accepted.
+  A warning is emitted for the dipole panels of the WAMIT Version 6 format, which are not supported, and an error is raised for walls (negative ``ISX`` or ``ISY``) and higher-order geometries (``IGDEF`` other than 0).
+
 * Fix a memory leak when solving with a mesh having two nested symmetries (two reflection planes or a dihedral symmetry): the influence matrices of all the previously solved frequencies were kept in memory.
 
 * Fix the hash of Green functions, which depended on the identity of the object instead of on its settings: two identical Green functions now have the same hash.
