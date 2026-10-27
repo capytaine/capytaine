@@ -47,3 +47,14 @@ def test_lazy_matrix_with_2d_right_hand_side():
     rhs = np.random.default_rng(1).normal(size=(7, 3)) + 1j
     np.testing.assert_allclose(lazy @ rhs, full @ rhs)
     np.testing.assert_allclose(lazy @ rhs[:, 0], full @ rhs[:, 0])
+
+def test_stack_of_lazy_matrices():
+    def constructor(sl):
+        return np.ones((3, sl.stop - sl.start, 10))
+    lazy_ones = LazyMatrix(constructor, shape=(3, 100, 10), chunk_size=5)
+    x = RNG.uniform(size=10)
+    y1 = lazy_ones @ x
+    full_ones = np.ones(lazy_ones.shape)
+    y2 = full_ones @ x
+    assert np.allclose(full_ones, np.array(lazy_ones))
+    assert np.allclose(y1, y2)
