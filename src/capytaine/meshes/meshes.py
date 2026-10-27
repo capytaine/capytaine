@@ -503,8 +503,9 @@ class Mesh(AbstractMesh):
 
         Parameters
         ----------
-        faces_id : array_like
-            Indices of faces to extract.
+        faces_id : array_like or slice
+            Indices of faces to extract (any index accepted by NumPy on an
+            array of length `nb_faces`, such as a list, a slice or a boolean mask).
         name: str, optional
             A name for the new mesh
 
@@ -513,13 +514,12 @@ class Mesh(AbstractMesh):
         Mesh
             New mesh containing only the specified faces.
         """
-        if isinstance(faces_id, np.ndarray):
-            faces_id = faces_id.ravel()
+        faces_id = np.arange(self.nb_faces)[faces_id].ravel()
         all_faces = self.as_list_of_faces()
         selected_faces = [all_faces[i] for i in faces_id]
         return Mesh.from_list_of_faces(
             selected_faces,
-            faces_metadata={k: self.faces_metadata[k][selected_faces, ...] for k in self.faces_metadata},
+            faces_metadata={k: self.faces_metadata[k][faces_id, ...] for k in self.faces_metadata},
             name=name,
             quadrature_method=self.quadrature_method,
             auto_clean=False,
