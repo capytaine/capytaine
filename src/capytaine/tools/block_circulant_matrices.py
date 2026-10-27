@@ -16,7 +16,7 @@
 import cmath
 import logging
 import numpy as np
-from functools import lru_cache
+from functools import cached_property
 from typing import Any, List, Union, Sequence
 
 from capytaine.bem.linear_solvers import lu_decompose, AbstractLUDecomposedMatrix
@@ -237,9 +237,10 @@ class NestedBlockCirculantMatrix(_BlockMatrixBackendMixin):
         self.ndim = len(self.shape)
         self.dtype = self.blocks[0].dtype
 
-    @lru_cache
-    def to_BlockCirculantMatrix(self):
-        """Convert to a BlockCirculantMatrix with combined macro-blocks.
+    @cached_property
+    def _block_circulant_matrix(self):
+        """Conversion to a BlockCirculantMatrix with combined macro-blocks,
+        cached on the instance (to be freed with it).
 
         The NestedBlockCirculantMatrix with blocks ``[a, b, c, d, e, f, ...]``
         (where ``nb_blocks = 2*n``) is converted to a BlockCirculantMatrix with n macro-blocks.
@@ -276,10 +277,10 @@ class NestedBlockCirculantMatrix(_BlockMatrixBackendMixin):
         return BlockCirculantMatrix(macro_blocks)
 
     def __array__(self, dtype=None, copy=True):
-        return self.to_BlockCirculantMatrix().__array__(dtype=dtype, copy=copy)
+        return self._block_circulant_matrix.__array__(dtype=dtype, copy=copy)
 
     def __matmul__(self, other):
-        return self.to_BlockCirculantMatrix() @ other
+        return self._block_circulant_matrix @ other
 
     def matvec(self, other):
         return self.__matmul__(other)
@@ -304,10 +305,10 @@ class NestedBlockCirculantMatrix(_BlockMatrixBackendMixin):
             ])
         else:
             # Drop the inner structure
-            return self.to_BlockCirculantMatrix().block_diagonalize()
+            return self._block_circulant_matrix.block_diagonalize()
 
     def solve(self, b):
-        return self.to_BlockCirculantMatrix().solve(b)
+        return self._block_circulant_matrix.solve(b)
 
 
 class BlockDiagonalMatrix(_BlockMatrixBackendMixin):
@@ -426,4 +427,4 @@ def _lu_decompose_block_circulant(A, *, overwrite_a: bool = False):
 @lu_decompose.register(NestedBlockCirculantMatrix)
 def _lu_decompose_nested_block_circulant(A, *, overwrite_a: bool = False):
     # Drop the nested block circulant structure and LU-decompose the outer block circulant structure only.
-    return LUDecomposedBlockCirculantMatrix(A.to_BlockCirculantMatrix(), overwrite_a=overwrite_a)
+    return LUDecomposedBlockCirculantMatrix(A._block_circulant_matrix, overwrite_a=overwrite_a)
