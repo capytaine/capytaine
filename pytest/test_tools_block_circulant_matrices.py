@@ -11,6 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import gc
+import weakref
+
 import numpy as np
 import pytest
 from capytaine.tools.block_circulant_matrices import (
@@ -140,8 +143,8 @@ def test_2x2x2x2_nested_block_circulant_matrices():
         np.linalg.solve(full_A, b)
     )
 
-    # Test that to_BlockCirculantMatrix produces equivalent matrix
-    bc = A.to_BlockCirculantMatrix()
+    # Test that the conversion to BlockCirculantMatrix produces equivalent matrix
+    bc = A._block_circulant_matrix
     assert isinstance(bc, BlockCirculantMatrix)
     assert np.allclose(np.array(bc), full_A)
 
@@ -173,8 +176,8 @@ def test_3x2_nested_block_circulant_matrices():
         np.linalg.solve(full_A, b)
     )
 
-    # Test that to_BlockCirculantMatrix produces equivalent matrix
-    bc = A.to_BlockCirculantMatrix()
+    # Test that the conversion to BlockCirculantMatrix produces equivalent matrix
+    bc = A._block_circulant_matrix
     assert isinstance(bc, BlockCirculantMatrix)
     assert np.allclose(np.array(bc), full_A)
 
@@ -204,8 +207,8 @@ def test_4x2_nested_block_circulant_matrices():
         np.linalg.solve(full_A, b)
     )
 
-    # Test that to_BlockCirculantMatrix produces equivalent matrix
-    bc = A.to_BlockCirculantMatrix()
+    # Test that the conversion to BlockCirculantMatrix produces equivalent matrix
+    bc = A._block_circulant_matrix
     assert isinstance(bc, BlockCirculantMatrix)
     assert np.allclose(np.array(bc), full_A)
 
@@ -248,7 +251,7 @@ def test_nested_block_circulant_lu_decompose():
     full_A = np.array(A)
 
     # LU decompose the converted BlockCirculantMatrix
-    bc = A.to_BlockCirculantMatrix()
+    bc = A._block_circulant_matrix
     lu_bc = lu_decompose(bc)
 
     b = RNG.normal(size=(A.shape[0],)) + 1j*RNG.normal(size=(A.shape[0],))
@@ -256,6 +259,16 @@ def test_nested_block_circulant_lu_decompose():
     x_direct = np.linalg.solve(full_A, b)
 
     assert np.allclose(x_lu, x_direct)
+
+
+def test_nested_block_circulant_matrix_conversion_is_freed_with_the_matrix():
+    # An lru_cache on to_BlockCirculantMatrix used to keep every converted matrix alive
+    A = NestedBlockCirculantMatrix([_rand(2, 2) for _ in range(4)])
+    bc = A._block_circulant_matrix
+    ref_A, ref_bc = weakref.ref(A), weakref.ref(bc)
+    del A, bc
+    gc.collect()
+    assert ref_A() is None and ref_bc() is None
 
 
 def test_lu_decomposed_matrices_know_their_array_library():

@@ -52,6 +52,8 @@ Bug fixes
 
 * Fix double layer term when computing the value at field points without a free surface.
 
+* Fix a memory leak when solving with a mesh having two nested symmetries (two reflection planes or a dihedral symmetry): the influence matrices of all the previously solved frequencies were kept in memory.
+
 * Fix the hash of Green functions, which depended on the identity of the object instead of on its settings: two identical Green functions now have the same hash.
 
 Internals
