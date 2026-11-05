@@ -318,8 +318,7 @@ class Delhommeau(AbstractGreenFunction):
         when mesh1 is mesh2), the double layer operators include the
         self-influence term: K (and the full gradient) is the limit from the
         side of the normal of the face (usually the fluid), which adds n/2 with
-        the normal of that face, and D includes +1/2. Faces on the free surface
-        get 1 instead of 1/2.
+        the normal of that face, and D includes +1/2.
 
         Parameters
         ----------
@@ -382,7 +381,9 @@ class Delhommeau(AbstractGreenFunction):
         self-influence term: K (and the full gradient) is the limit from the
         side of the normal of the face (usually the fluid), which adds n/2 with
         the normal of that face, and D includes +1/2. Faces on the free surface
-        get 1 instead of 1/2.
+        and on the sea bottom get 1 instead of 1/2, from the image of the
+        Rankine term (except faces on the free surface with
+        ``finite_depth_method="legacy"``, which are not supported and get 1/2).
 
         Parameters
         ----------
