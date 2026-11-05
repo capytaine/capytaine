@@ -117,9 +117,15 @@ class AbstractGreenFunction(ABC):
         wavenumber,
         adjoint_double_layer=True,
         early_dot_product=True,
-        diagonal_term_in_double_layer=True,
     ):
         """Assemble the influence matrices between mesh1 and mesh2.
+
+        Where a point of mesh1 lies on a face of mesh2 (e.g. on the diagonal
+        when mesh1 is mesh2), the double layer operators include the
+        self-influence term: K (and the full gradient) is the limit from the
+        side of the normal of the face (usually the fluid), which adds n/2 with
+        the normal of that face, and D includes +1/2. Faces on the free surface
+        get 1 instead of 1/2.
 
         Parameters
         ----------
@@ -141,8 +147,6 @@ class AbstractGreenFunction(ABC):
         early_dot_product: bool, optional
             if True, K is the matrix of ∫∇G·n, if False it is the gradient ∫∇G
             (default: True)
-        diagonal_term_in_double_layer: bool, optional
-            if True, add the I/2 term in the double layer operator (default: True)
 
         Returns
         -------

@@ -61,6 +61,12 @@ Bug fixes
 
 * Fix :meth:`~capytaine.meshes.meshes.Mesh.extract_faces` on a mesh with faces metadata, that was failing. It now also accepts a slice or a boolean mask to select the faces.
 
+* The self-influence term of the double layer operators is now added wherever a collocation point lies on a face of the source mesh, with the normal of that face, instead of on the diagonal of the matrix, assuming that the first faces of both meshes are the same.
+  In particular, velocities on the hull computed at an array of points or on a sub-mesh are now the limit on the fluid side, as they already were when passing the mesh itself.
+  Faces on the sea bottom (with the default finite depth Green function) now get the coefficient 1, like faces on the free surface, instead of 1/2.
+  A lid slightly below the free surface (closer than ``1e-4`` times the radius of its faces) also gets the coefficient 1.
+  Faces on the free surface are not supported by the legacy finite depth method (``finite_depth_method="legacy"``): they now get the coefficient 1/2 instead of 1.
+
 Internals
 ~~~~~~~~~
 
@@ -80,6 +86,10 @@ Internals
   Meshes with symmetries are supported: the block matrices of :mod:`capytaine.tools.block_circulant_matrices` are now implemented with the array API standard instead of NumPy. (:pull:`958`)
   They can be built from an array of shape ``(nb_blocks, n, m)`` or a list of blocks.
   The blocks of a :class:`~capytaine.tools.block_circulant_matrices.BlockCirculantMatrix` have to be arrays and not other block matrices anymore (use :class:`~capytaine.tools.block_circulant_matrices.NestedBlockCirculantMatrix` instead).
+
+* The self-influence term of the double layer operators is computed in the Fortran core as the one-sided limit of the integral of the Rankine term (and of its reflections) over the faces, wherever a collocation point lies on a face.
+  The Fortran subroutine ``add_diagonal_term`` has been removed.
+  The ``diagonal_term_in_double_layer`` parameter of the ``evaluate`` method of the Green functions has been removed: the self-influence term is always included (the principal value can be recovered by subtracting it from the diagonal).
 
 * The string representation (``__str__``, ``__repr__``) and the hash of Green functions are now implemented once in :class:`~capytaine.green_functions.abstract_green_function.AbstractGreenFunction`, driven by ``exportable_settings`` and a ``_default_parameters`` class attribute.
 
