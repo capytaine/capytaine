@@ -41,6 +41,11 @@ Major changes
   as well as the first-order fields on the waterline from which the waterline term of the force is computed: ``pressure_waterline_total`` and ``relative_elevation_waterline``, of shape ``(nb_freq, nb_wave_direction, nb_waterline_segments)``, and the waterline segments ``mesh_waterline``.
   The near field mean drift force can be exported to WAMIT's `.9` file format. (:pull:`909`)
 
+Minor changes
+~~~~~~~~~~~~~
+
+* Support Pandas 3: remove the upper bound on the version of Pandas. (:issue:`756`)
+
 Bug fixes
 ~~~~~~~~~
 
