@@ -83,7 +83,7 @@ packaging==26.3
     #   pyproject-metadata
     #   pytest
     #   xarray
-pandas==2.3.3
+pandas==3.0.6
     # via
     #   capytaine (pyproject.toml)
     #   xarray
@@ -114,8 +114,6 @@ python-dateutil==2.9.0.post0
     # via
     #   matplotlib
     #   pandas
-pytz==2026.4
-    # via pandas
 pyvista==0.49.0
     # via capytaine (pyproject.toml)
 pyvista-validation==0.2.2
@@ -142,8 +140,6 @@ trimesh==5.1.0
     # via capytaine (pyproject.toml)
 typing-extensions==4.16.0
     # via pyvista
-tzdata==2026.4
-    # via pandas
 urllib3==2.8.0
     # via requests
 vtk==9.7.1
