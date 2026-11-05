@@ -114,12 +114,13 @@ contains
 
     reversed_limit_side_of_free_surface_image = (gf_singularities == HIGH_FREQ)
     ! The jump term of the free surface image (reflected Rankine part) is computed from the opposite side for high_freq,
-    ! and then multiplied by sign_reflected_Rankine = -1 below: the jump keeps the same sign for low_freq and high_freq.
-    ! For high_freq, the wave part of the Green function is the one of low_freq minus 2/(4π r_reflected), so it is
-    ! singular for panels on the free surface, and its jump term is not captured by the numerical integration of
-    ! the wave part. This is equivalent to adding this missing jump term, such that panels on the free surface get
-    ! coefficient 1 in both cases. In particular, at infinite frequency (high_freq, no wave part), the columns of
-    ! these panels would otherwise be zero.
+    ! and then multiplied by sign_reflected_Rankine = -1 below: the jump keeps the same sign for low_freq and high_freq,
+    ! such that faces on the free surface get coefficient 1 in both cases.
+    ! In practice, high_freq is only used with faces on the free surface at infinite frequency (the Python code switches
+    ! to low_freq otherwise). There, G = 1/r - 1/r_reflected vanishes when either point is on the free surface, so
+    ! without this coefficient, the columns of K (resp. the rows of S and D) of these faces would be zero and the
+    ! matrices singular. With it, the sources on these faces are decoupled from the rest of the problem and have no
+    ! influence on the flow (indirect method), and the potential on these faces is zero (direct method), as expected.
 
     !$OMP PARALLEL DO SCHEDULE(DYNAMIC) &
     !$OMP&  PRIVATE(J, I, int_G, int_nablaG, int_G_Rankine, int_nablaG_Rankine, &

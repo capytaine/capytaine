@@ -67,12 +67,8 @@ def test_potential_and_velocity_at_field_points_of_translating_sphere():
 
 def test_known_values_of_double_layer_matrix_on_closed_sphere():
     # Without free surface, the Green function is the Rankine source only.
-    # By Gauss's law, the double layer matrix D applied to a constant density
-    # on a closed surface is
-    # - 1/2 for its principal value part (half of the solid angle),
-    # - 1 with the diagonal term I/2.
+    # By Gauss's law, the double layer matrix D (including the diagonal term I/2)
+    # applied to a constant density on a closed surface is 1.
     mesh = cpt.mesh_sphere(radius=1.0, center=(0, 0, 0), resolution=(20, 20))
     _, D = cpt.Delhommeau().evaluate(mesh, mesh, free_surface=np.inf, adjoint_double_layer=False)
     np.testing.assert_allclose(D @ np.ones(mesh.nb_faces), 1.0, atol=1e-2)
-    principal_value = D - 0.5*np.eye(mesh.nb_faces)
-    np.testing.assert_allclose(principal_value @ np.ones(mesh.nb_faces), 0.5, atol=1e-2)

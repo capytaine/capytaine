@@ -125,7 +125,7 @@ class AbstractGreenFunction(ABC):
         self-influence term: K (and the full gradient) is the limit from the
         side of the normal of the face (usually the fluid), which adds n/2 with
         the normal of that face, and D includes +1/2. Faces on the free surface
-        get 1 instead of 1/2.
+        (and on the sea bottom in finite depth) usually get 1 instead of 1/2.
 
         Parameters
         ----------
