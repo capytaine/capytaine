@@ -138,13 +138,13 @@ def test_effect_of_lid_on_infinite_frequency(
             body=body_with_lid, wavenumber=np.inf, radiating_dof="Heave"
             )
     res_with = solver.solve(pb_with)
-    f_with = res_with.forces["Heave"]
+    f_with = res_with.added_mass["Heave"]
 
     pb_without = cpt.RadiationProblem(
             body=body_without_lid, wavenumber=np.inf, radiating_dof="Heave"
             )
     res_without = solver.solve(pb_without)
-    f_without = res_without.forces["Heave"]
+    f_without = res_without.added_mass["Heave"]
 
     assert f_with == pytest.approx(f_without, rel=5e-2)
 
