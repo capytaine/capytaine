@@ -66,6 +66,8 @@ Bug fixes
 
 * Fix :meth:`~capytaine.meshes.meshes.Mesh.extract_faces` on a mesh with faces metadata, that was failing. It now also accepts a slice or a boolean mask to select the faces.
 
+* Fix the build from source on Linux aarch64, where GCC has no libquadmath: only link it on Windows.
+
 Internals
 ~~~~~~~~~
 
