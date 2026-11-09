@@ -30,12 +30,6 @@ Before submitting a pull request, please take a look at the following points:
   Indentation is done with four spaces.
   Try to avoid trailing whitespaces whenever possible.
 
+- See also AI policy in `AI policy <https://github.com/capytaine/capytaine/blob/master/CONTRIBUTING.md#ai-policy>`_.
+
 .. _`PEP8`: https://pep8.org/
-
-
-The whole of Capytaine is currently licensed under the terms of the General
-Public License (GPL). In the future, some modules might be extracted and
-released with another free software license, such as the Apache License. If
-your contribution cannot be released under another license (because it includes
-code from another GPL package or just because you don't want to), please tell
-us explicitly.
