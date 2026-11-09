@@ -46,6 +46,8 @@ Minor changes
 
 * Support Pandas 3: remove the upper bound on the version of Pandas. (:issue:`756`)
 
+* Build wheels for Linux on aarch64 (ARM64), such as AWS Graviton instances or Linux containers on Apple Silicon Macs.
+
 Bug fixes
 ~~~~~~~~~
 

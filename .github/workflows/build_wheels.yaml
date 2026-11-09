@@ -57,6 +57,27 @@ jobs:
           path: ./wheelhouse/*.whl
 
 
+  "build_wheels_on_ubuntu_arm":
+    name: Build wheels on Ubuntu ARM
+    runs-on: ubuntu-24.04-arm
+
+    steps:
+      - uses: actions/checkout@v6
+
+      # No need to setup fortran, it won't be used by CIbuildwheel which is
+      # using a Manylinux container
+
+      - name: Build wheels on Ubuntu ARM
+        uses: pypa/cibuildwheel@v4.3.5
+        env:
+          CIBW_SKIP: "*musllinux*"
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: wheels-ubuntu-arm
+          path: ./wheelhouse/*.whl
+
+
   "build_wheels_on_macos_intel":
     name: Build wheels on MacOS Intel
     runs-on: macos-15-intel
