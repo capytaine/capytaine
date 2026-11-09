@@ -30,8 +30,9 @@ Before submitting a pull request, please take a look at the following points:
   Indentation is done with four spaces.
   Try to avoid trailing whitespaces whenever possible.
 
-.. _`PEP8`: https://pep8.org/
+- See also AI policy in `AI policy <https://github.com/capytaine/capytaine/blob/master/CONTRIBUTING.md#ai-policy>`_.
 
+.. _`PEP8`: https://pep8.org/
 
 The whole of Capytaine is currently licensed under the terms of the General
 Public License (GPL). In the future, some modules might be extracted and
