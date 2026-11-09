@@ -38,8 +38,10 @@ class SymbolicMultiplication:
 
     def __array_function__(self, func, types, *args, **kwargs):
         actual_args = args[0]  # args = (actual_args, kwargs) for some reason
-        if func in {np.real, np.imag, np.sum, np.transpose} and len(actual_args) == 1 and len(kwargs) == 0:
+        if func in {np.real, np.imag, np.sum, np.transpose, np.squeeze} and len(actual_args) == 1 and len(kwargs) == 0:
             return SymbolicMultiplication(self.symbol, func(self.value))
+        elif func in {np.moveaxis}:
+            return SymbolicMultiplication(self.symbol, func(self.value, *actual_args[1:], **kwargs))
         elif func in {np.concatenate, np.stack}:
             arrays = actual_args[0]
             if (all(isinstance(a, SymbolicMultiplication) for a in arrays) and

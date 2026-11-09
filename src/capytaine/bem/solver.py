@@ -183,7 +183,7 @@ class BEMSolver:
             with self.timer(step="Green function"):
                 S, D = self.engine.build_matrices(
                         problem.body.mesh_including_lid, problem.body.mesh_including_lid,
-                        **gf_params, adjoint_double_layer=False, diagonal_term_in_double_layer=True,
+                        **gf_params, adjoint_double_layer=False,
                         )
             with self.timer(step="Matrix-vector product"):
                 rhs = self._matmul(S, problem.boundary_condition)
@@ -196,7 +196,7 @@ class BEMSolver:
             with self.timer(step="Green function"):
                 S, K = self.engine.build_matrices(
                         problem.body.mesh_including_lid, problem.body.mesh_including_lid,
-                        **gf_params, adjoint_double_layer=True, diagonal_term_in_double_layer=True,
+                        **gf_params, adjoint_double_layer=True,
                         )
             with self.timer(step="Linear solver"):
                 sources = self._solve_linear_system(K, problem.boundary_condition)
@@ -471,20 +471,15 @@ class BEMSolver:
         -------
         complex-valued array of shape (..., *points_shape, 3)
         """
-        points, output_shape = _normalize_points(points, keep_mesh=True)
-        # keep_mesh, because we need the normal vectors associated with each collocation points to compute the fullK matrix
+        points, output_shape = _normalize_points(points)
         batch_shape = tuple(sources.shape[:-1])
         with self.timer(step="Post-processing velocity"):
             gradG = self.engine.build_fullK_matrix(points, mesh, **gf_params)
-            # gradG is either:
-            # - an array of shape (3, nb_points, mesh.nb_faces)
-            # - a 3-ple of matrices of the shape (nb_points, mesh.nb_faces), that could be stored as LazyMatrix.
-            rhs = sources.reshape(-1, sources.shape[-1]).T
-            vx, vy, vz = (to_numpy(self._matmul(gradG[i, ...], rhs)) for i in range(3))
-            # The matrix-matrix product here computes the integral over the mesh of the contributions of each panel in the mesh
-            velocities = np.stack([vx.T, vy.T, vz.T], axis=-1)
-            # velocities.shape = (nb_sources, nb_points, 3)
-        return velocities.reshape((*batch_shape, *output_shape, 3))
+            # gradG is an array of shape (3, nb_points, mesh.nb_faces), possibly lazy in the nb_points dimension
+            # sources is an array of shape (..., mesh.nb_faces), leading dimensions can be used for batch computation
+            velocities = to_numpy(self._matmul(gradG, sources[..., None, :, None]))
+            # velocities.shape = (..., 3, nb_points, 1)
+        return np.moveaxis(velocities[..., 0], -1, -2).reshape(*batch_shape, *output_shape, 3)
 
     def compute_potential(self, points, result):
         """Compute the value of the potential at given points for a previously solved potential flow problem.

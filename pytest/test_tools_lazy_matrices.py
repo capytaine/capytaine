@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import pytest
 import numpy as np
 
 from capytaine.tools.lazy_matrices import LazyMatrix
@@ -22,6 +23,7 @@ def test_simple_constructor():
         return np.arange(sl.start, sl.stop).reshape(-1, 1)
     A = LazyMatrix(constructor, shape=(100, 1), chunk_size=5)
     assert np.all(np.array(A) == np.arange(0, 100).reshape(-1, 1))
+
 
 def test_mvp():
     def constructor(sl):
@@ -41,9 +43,42 @@ def test_array_library_of_lazy_matrix():
     assert A.device == "cpu"
     assert A.dtype == np.float64
 
+
 def test_lazy_matrix_with_2d_right_hand_side():
     full = np.random.default_rng(0).normal(size=(30, 7)) + 0j
     lazy = LazyMatrix(lambda sl: full[sl, :], (30, 7), chunk_size=4, dtype=complex)
     rhs = np.random.default_rng(1).normal(size=(7, 3)) + 1j
     np.testing.assert_allclose(lazy @ rhs, full @ rhs)
     np.testing.assert_allclose(lazy @ rhs[:, 0], full @ rhs[:, 0])
+
+
+def test_stack_of_lazy_matrices():
+    def constructor(sl):
+        return np.ones((3, sl.stop - sl.start, 10))
+    lazy_ones = LazyMatrix(constructor, shape=(3, 100, 10), chunk_size=5)
+    x = RNG.uniform(size=10)
+    y1 = lazy_ones @ x
+    full_ones = np.ones(lazy_ones.shape)
+    y2 = full_ones @ x
+    assert np.allclose(full_ones, np.array(lazy_ones))
+    assert np.allclose(y1, y2)
+
+
+def test_generic_backend_vector():
+    xps = pytest.importorskip("array_api_strict")  # Not available on Python 3.8
+    def constructor(sl):
+        return xps.ones((3, sl.stop-sl.start, 10))
+    A = LazyMatrix(constructor, shape=(3, 40, 10), array_backend=xps, chunk_size=5)
+    assert np.array(A).shape == A.shape
+    b = xps.ones((10,))
+    assert (A @ b).shape == (np.array(A) @ b).shape == (3, 40)
+
+
+def test_generic_backend_stack_of_matrices():
+    xps = pytest.importorskip("array_api_strict")  # Not available on Python 3.8
+    def constructor(sl):
+        return xps.ones((3, sl.stop-sl.start, 10))
+    A = LazyMatrix(constructor, shape=(3, 40, 10), array_backend=xps, chunk_size=5)
+    assert np.array(A).shape == A.shape
+    b = xps.ones((3, 10, 1))
+    assert (A @ b).shape == (np.array(A) @ b).shape == (3, 40, 1)

@@ -310,10 +310,15 @@ class Delhommeau(AbstractGreenFunction):
             self,
             mesh1, mesh2, *,
             adjoint_double_layer=True, early_dot_product=True,
-            diagonal_term_in_double_layer=True,
             ):
         r"""Construct the matrices between mesh1 (that can also be a list of points)
         and mesh2 for a Rankine kernel.
+
+        Where a point of mesh1 lies on a face of mesh2 (e.g. on the diagonal
+        when mesh1 is mesh2), the double layer operators include the
+        self-influence term: K (and the full gradient) is the limit from the
+        side of the normal of the face (usually the fluid), which adds n/2 with
+        the normal of that face, and D includes +1/2.
 
         Parameters
         ----------
@@ -329,11 +334,6 @@ class Delhommeau(AbstractGreenFunction):
         early_dot_product: boolean, optional
             if False, return K as a (3, n, m) array storing ∫∇G
             if True, return K as a (n, m) array storing ∫∇G·n
-        diagonal_term_in_double_layer: boolean, optional
-            if True, add the I/2 term in the double layer operator
-            It is assumed that mesh1 == mesh2, or at least that
-            the `n := min(mesh1.nb_faces, mesh2.nb_faces)` first faces
-            of each mesh are identical.
 
         Returns
         -------
@@ -356,12 +356,6 @@ class Delhommeau(AbstractGreenFunction):
                 adjoint_double_layer,
                 S, K)
 
-        if diagonal_term_in_double_layer:
-            n = min(K.shape[1], K.shape[2])
-            self.fortran_core.matrices.add_diagonal_term(
-                    mesh2.faces_centers[:n, :], early_dot_product_normals, np.inf, K,
-                    )
-
         S, K = np.real(S), np.real(K)
 
         if np.any(np.isnan(S)) or np.any(np.isnan(K)):
@@ -379,9 +373,17 @@ class Delhommeau(AbstractGreenFunction):
             self, mesh1, mesh2, *,
             free_surface=0.0, water_depth=np.inf, wavenumber=1.0,
             adjoint_double_layer=True, early_dot_product=True,
-            diagonal_term_in_double_layer=True,
             ):
         r"""The main method of the class, called by the engine to assemble the influence matrices.
+
+        Where a point of mesh1 lies on a face of mesh2 (e.g. on the diagonal
+        when mesh1 is mesh2), the double layer operators include the
+        self-influence term: K (and the full gradient) is the limit from the
+        side of the normal of the face (usually the fluid), which adds n/2 with
+        the normal of that face, and D includes +1/2. Faces on the free surface
+        and on the sea bottom get 1 instead of 1/2, from the image of the
+        Rankine term (except faces on the free surface with
+        ``finite_depth_method="legacy"``, which are not supported and get 1/2).
 
         Parameters
         ----------
@@ -401,11 +403,6 @@ class Delhommeau(AbstractGreenFunction):
         early_dot_product: boolean, optional
             if False, return K as a (3, n, m) array storing ∫∇G
             if True, return K as a (n, m) array storing ∫∇G·n
-        diagonal_term_in_double_layer: boolean, optional
-            if True, add the I/2 term in the double layer operator.
-            It is assumed that mesh1 == mesh2, or at least that
-            the `n := min(mesh1.nb_faces, mesh2.nb_faces)` first faces
-            of each mesh are identical.
 
         Returns
         -------
@@ -424,7 +421,6 @@ class Delhommeau(AbstractGreenFunction):
                 mesh1, mesh2,
                 adjoint_double_layer=adjoint_double_layer,
                 early_dot_product=early_dot_product,
-                diagonal_term_in_double_layer=diagonal_term_in_double_layer,
             )
 
         # Main case:
@@ -481,12 +477,6 @@ class Delhommeau(AbstractGreenFunction):
             gf_singularities_index, adjoint_double_layer,
             S, K
         )
-
-        if diagonal_term_in_double_layer:
-            n = min(K.shape[1], K.shape[2])
-            self.fortran_core.matrices.add_diagonal_term(
-                    mesh2.faces_centers[:n, :], early_dot_product_normals, free_surface, K,
-                    )
 
         if early_dot_product:
             K = K.reshape((collocation_points.shape[0], mesh2.nb_faces))
