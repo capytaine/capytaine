@@ -80,11 +80,21 @@ class LazyMatrix:
         return matrix if dtype is None else matrix.astype(dtype)
 
     def __matmul__(self, other):
-        if is_array(other) and other.ndim in (1, 2) and other.shape[0] == self.shape[1]:
-            # Matrix-vector and matrix-matrix products (with a 2D right-hand side of shape (shape[1], k)) are implemented
-            # Compute `chunk_size` rows and multiply them by `other`
+        if is_array(other):
+            # Following numpy definition of __matmul__, `other` should be either of shape
+            # - (self.shape[-1],). Output is then of shape (..., self.shape[-2]).
+            # - (..., self.shape[-1], n), such that `...` is compatible with self.shape.
+            #   Output is then of shape (..., self.shape[-2], n)
+            #
+            # No check of shape of inputs is done here, it will be done
+            # by backend in the computation below of a chunk below.
+            # Only benefit of doing it here would be for more explicit error messages
+            # using `self.shape` instead of `self.row_constructor(sl).shape`.
             output_chunks = [self.row_constructor(sl) @ other for sl in self._slices]
-            return self._array_backend.concat(output_chunks, axis=-2)
+            if other.ndim == 1:
+                return self._array_backend.concat(output_chunks, axis=-1)
+            else:
+                return self._array_backend.concat(output_chunks, axis=-2)
         else:
             return NotImplemented
             # Usually fallback on building the full NumPy matrix with __array__ above.
