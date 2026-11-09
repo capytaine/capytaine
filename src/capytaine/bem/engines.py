@@ -197,7 +197,7 @@ class DefaultMatrixEngine(MatrixEngine):
 
         full_mesh2 = mesh2.merged()
         def build_fullK_rows(slice_):
-            _, fullK = self.green_function.evaluate(points[slice, :], full_mesh2, **gf_params)
+            _, fullK = self.green_function.evaluate(points[slice_, :], full_mesh2, **gf_params)
             check_if_nan_in_matrix([fullK])
             return fullK
 
