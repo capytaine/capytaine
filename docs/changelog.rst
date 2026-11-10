@@ -46,6 +46,8 @@ Minor changes
 
 * Support Pandas 3: remove the upper bound on the version of Pandas. (:issue:`756`)
 
+* Build wheels for Linux on aarch64 (ARM64), such as AWS Graviton instances or Linux containers on Apple Silicon Macs.
+
 Bug fixes
 ~~~~~~~~~
 
@@ -65,6 +67,8 @@ Bug fixes
 * Fix the hash of Green functions, which depended on the identity of the object instead of on its settings: two identical Green functions now have the same hash.
 
 * Fix :meth:`~capytaine.meshes.meshes.Mesh.extract_faces` on a mesh with faces metadata, that was failing. It now also accepts a slice or a boolean mask to select the faces.
+
+* Fix the build from source on Linux aarch64, where GCC has no libquadmath: only link it on Windows.
 
 Internals
 ~~~~~~~~~

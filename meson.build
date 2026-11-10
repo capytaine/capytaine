@@ -90,7 +90,7 @@ else
 endif
 
 args = ['-cpp']
-link_args = ['-lquadmath']  # Required for the Windows build with cibuildwheel
+link_args = host_machine.system() == 'windows' ? ['-lquadmath'] : []  # Required for the Windows build with cibuildwheel
 deps = [py3_dep, omp]
 
 py3.extension_module('Delhommeau_float32',
