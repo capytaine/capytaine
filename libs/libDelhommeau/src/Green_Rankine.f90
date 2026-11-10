@@ -19,7 +19,7 @@ module Green_Rankine
   implicit none
 
   ! The index of the following node when going around a face.
-  integer, private, dimension(4), parameter :: next_node = (/ 2, 3, 4, 1 /)
+  integer, dimension(4), parameter :: next_node = (/ 2, 3, 4, 1 /)
 
 contains
 
@@ -31,11 +31,6 @@ contains
       face_area, face_radius,                    &
       derivative_with_respect_to_first_variable, &
       int_G, int_nabla_G)
-    ! When M lies on the face, the gradient is the one-sided limit (see exact_integral_of_Rankine):
-    ! - derivative with respect to M (adjoint double layer K, full gradient): limit from the side of the normal of the
-    !   face (usually the fluid), which gives the +½ n term of K;
-    ! - derivative with respect to the source point (double layer D): limit from the other side, which gives the +½
-    !   term of D.
 
     real(kind=pre), dimension(3),    intent(in) :: M
     real(kind=pre), dimension(4, 3), intent(in) :: face_nodes
@@ -49,6 +44,7 @@ contains
 
     ! Local
     real(kind=pre) :: r0
+    real(kind=pre) :: limit_side
 
     r0 = norm2(M(1:3) - face_center(1:3))
 
@@ -59,15 +55,19 @@ contains
         derivative_with_respect_to_first_variable, &
         int_G, int_nabla_G)
     else
+      if (derivative_with_respect_to_first_variable) then
+        limit_side = ONE
+      else
+        limit_side = -ONE
+      endif
       call exact_integral_of_Rankine               &
         (M,                                        &
         face_nodes, face_center, face_normal,      &
         face_area, face_radius,                    &
         derivative_with_respect_to_first_variable, &
-        merge(ONE, -ONE, derivative_with_respect_to_first_variable), &
+        limit_side,                                &
         int_G, int_nabla_G)
     end if
-    ! No jump in the far field (r0 > 7*face_radius): M cannot be on the face.
   end subroutine
 
   ! =================================================================
@@ -233,7 +233,6 @@ contains
       face_area, face_radius,                    &
       derivative_with_respect_to_first_variable, &
       reflection_coefs,                          &
-      reversed_limit_side,                       &
       int_G, int_nabla_G)
 
     real(kind=pre), dimension(3),    intent(in) :: M
@@ -242,8 +241,6 @@ contains
     real(kind=pre),                  intent(in) :: face_area, face_radius
     logical,                         intent(in) :: derivative_with_respect_to_first_variable
     real(kind=pre), dimension(2),    intent(in) :: reflection_coefs
-    logical,                         intent(in) :: reversed_limit_side
-    ! See exact_integral_of_reflected_Rankine
 
     ! Outputs
     real(kind=pre),               intent(out) :: int_G
@@ -269,7 +266,6 @@ contains
         face_area, face_radius,                    &
         derivative_with_respect_to_first_variable, &
         reflection_coefs,                          &
-        reversed_limit_side,                       &
         int_G, int_nabla_G)
     end if
   end subroutine integral_of_reflected_Rankine
@@ -282,28 +278,8 @@ contains
       face_area, face_radius,                         &
       derivative_with_respect_to_first_variable,      &
       reflection_coefs,                               &
-      reversed_limit_side,                            &
       int_g, int_nabla_g)
     ! Reflecting with respect to the free surface
-
-    ! When M lies on a face, it approaches it from the side limit_side, chosen as in integral_of_Rankine
-    ! (+1 for the derivative with respect to M, -1 otherwise), or the opposite if reversed_limit_side.
-    ! (reversed_limit_side is meant for the free surface image with high_freq, see build_matrices.)
-    ! The side reflected_side from which the reflected point approaches the face is:
-    !
-    ! Derivative with respect to M (adjoint double layer K, or full gradient):
-    !   The reflected point is R M + b, with R = diag(1, 1, reflection_coefs(1)). When M = M0 + η n with η -> 0
-    !   with the sign of limit_side, the reflected point is (R M0 + b) + η R n, which approaches the plane of the
-    !   face from the side sign(n·Rn)*limit_side. This is the genuine one-sided limit of the reflected term.
-    !   For instance, for a face on the free surface (n = ±e_z, R n = -n) and the free surface image, the reflected
-    !   point comes from the other side, the jump of the image term has the same direction as the one of the
-    !   direct term, and the total coefficient is 1 instead of 1/2.
-    !
-    ! Derivative with respect to the source point (double layer D, direct method):
-    !   The coefficient is not the limit of the double layer potential. It is the free term of the boundary integral
-    !   equation, to which each singularity of the Green function that lies on the boundary contributes ½.
-    !   This is obtained with the reflected side equal to limit_side: for a face on the free surface, the coefficient is 1.
-    !   (The genuine one-sided limit would give 0, as the normal derivative of 1/r + 1/r_reflected vanishes on z = 0.)
 
     ! Inputs
     real(kind=pre), dimension(3),    intent(in) :: M
@@ -312,7 +288,6 @@ contains
     real(kind=pre),                  intent(in) :: face_area, face_radius
     logical,                         intent(in) :: derivative_with_respect_to_first_variable
     real(kind=pre), dimension(2),    intent(in) :: reflection_coefs
-    logical,                         intent(in) :: reversed_limit_side
 
     ! Outputs
     real(kind=pre),               intent(out) :: int_g
@@ -320,7 +295,7 @@ contains
 
     ! local
     real(kind=pre), dimension(3)              :: reflected_M
-    real(kind=pre)                            :: limit_side, reflected_side, n_dot_Rn
+    real(kind=pre)                            :: reflected_side, n_dot_Rn
 
     reflected_M(1:2) = M(1:2)
     reflected_M(3)   = reflection_coefs(1) * M(3) + reflection_coefs(2)
@@ -329,19 +304,13 @@ contains
     ! reflection_coefs = [-1.0, 0.0] for free surface symmetry
     ! reflection_coefs = [-1.0, -2*h] for sea bottom symmetry
 
-    limit_side = merge(ONE, -ONE, derivative_with_respect_to_first_variable)
-    if (reversed_limit_side) limit_side = -limit_side
-
+    ! reflected_side only matters when reflected_M lies on the face, that is in practice for a face on the plane
+    ! of symmetry (n = ±e_z). Elsewhere, it is ignored by exact_integral_of_Rankine.
     if (derivative_with_respect_to_first_variable) then
       n_dot_Rn = face_normal(1)**2 + face_normal(2)**2 + reflection_coefs(1)*face_normal(3)**2
-      if (abs(n_dot_Rn) < real(1e-6, PRE)) then
-        ! The reflected point moves parallel to the face (n·Rn = 0), it does not cross it.
-        reflected_side = ZERO
-      else
-        reflected_side = sign(ONE, n_dot_Rn) * limit_side
-      end if
+      reflected_side = sign(ONE, n_dot_Rn)
     else
-      reflected_side = limit_side
+      reflected_side = -ONE
     end if
 
     call exact_integral_of_Rankine &

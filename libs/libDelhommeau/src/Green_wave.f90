@@ -22,26 +22,28 @@ module Green_Wave
 #ifdef FINGREEN3D_OPTIONAL_DEPENDENCY
     use fingreen3d_module, only: fingreen3d_routine, dispersion
 #endif
-  use green_rankine, only: integral_of_reflected_rankine
+  use green_rankine, only: integral_of_reflected_rankine, next_node
 
   implicit none
 
   ! Dependencies between the functions of this module:
   ! (from top to bottom: "is called by")
   !
-  !                                            (Delhommeau_integrals.f90 or LiangWuNoblesseWaveTerm.f90)
-  !                                                                       |
-  !                integral_of_singularity_on_free_surface          wave_part_infinite_depth
-  !                                                       \               |
-  !                    integral_of_reflected_Rankine      integral_of_wave_part_infinite_depth
-  !                                             |         /          |
-  !                     integral_of_wave_part_finite_depth           |
-  !                                              \                   /
-  !                                              integral_of_wave_part
-  !                                                       |
-  !                                                 (matrices.f90)
-  !                                                       |
-  !                                                 (python code)
+  !                              (Delhommeau_integrals.f90 or LiangWuNoblesseWaveTerm.f90)
+  !                                                         |
+  !  integral_of_singularity_on_free_surface          wave_part_infinite_depth
+  !                                         \               |
+  !      integral_of_reflected_Rankine      integral_of_wave_part_infinite_depth
+  !                               |         /          |
+  !       integral_of_wave_part_finite_depth           |
+  !                                \                   /
+  !                                integral_of_wave_part   integral_of_wave_part_infinite_frequency
+  !                                         |             /
+  !                                         (matrices.f90)
+  !                                               |
+  !                                         (python code)
+  !
+  !
 
 CONTAINS
 
@@ -155,6 +157,64 @@ CONTAINS
                 )
     int_nablaG(1:2) = cmplx(zero, zero, kind=pre)  ! TODO: might be needed for velocity reconstruction.
     int_nablaG(3) = wavenumber * (int_G + 4 * sqrt(pi*face_area))
+  end subroutine
+
+  ! =====================================================================
+
+  pure subroutine integral_of_wave_part_infinite_frequency &
+      (x,                                                  &
+      face_nodes, face_center, face_normal, face_radius,   &
+      int_G, int_nablaG)
+  ! Limit of the wave part of the high_freq Green function when the wavenumber goes to infinity.
+  !
+  ! The wave part itself goes to zero, but not the integral of its derivative over a face on the free surface,
+  ! when x is on this face. Indeed, compared to the low_freq wave part, the high_freq one includes the term 2/r_reflected
+  ! (G = 1/r + 1/r_reflected + G_w^+ = 1/r - 1/r_reflected + G_w^-, hence G_w^- = G_w^+ + 2/r_reflected),
+  ! which is singular on the free surface and whose derivative jumps by 2 × 4π across the face.
+  ! Its one-sided limit (from the side of the normal of the face) does not depend on the wavenumber and remains at
+  ! infinite frequency. It gives the coefficient 1 on the diagonal of the double layer operators for faces on the
+  ! free surface, as with low_freq, instead of 0 (the jump of -1/r_reflected cancels the one of 1/r):
+  ! the sources on these faces are then decoupled from the rest of the problem and have no influence on the flow
+  ! (indirect method), and the potential on these faces is zero (direct method), as expected.
+  !
+  ! Any x inside the face is detected. The face is assumed convex, with nodes ordered counterclockwise around
+  ! face_normal. Points on an edge of the face are not supported: they are counted inside each face sharing the edge
+  ! (instead of ½ for each with the solid angle), and the Rankine part is NaN there anyway.
+  ! The same term would be needed in integral_of_singularity_on_free_surface if free surface panels were
+  ! supported with high_freq at finite frequency.
+
+    real(kind=pre), dimension(3),    intent(in) :: x
+    real(kind=pre), dimension(4, 3), intent(in) :: face_nodes
+    real(kind=pre), dimension(3),    intent(in) :: face_center, face_normal
+    real(kind=pre),                  intent(in) :: face_radius
+
+    complex(kind=pre),               intent(out) :: int_G
+    complex(kind=pre), dimension(3), intent(out) :: int_nablaG
+
+    integer :: L
+    logical :: inside
+    real(kind=pre), dimension(2) :: edge, to_x
+
+    int_G = czero
+    int_nablaG(:) = czero
+
+    inside = (abs(face_center(3)) < real(1e-6, pre)) .and. (abs(x(3)) < real(1e-6, pre))
+    if (inside) then
+      ! Point in convex polygon in the horizontal plane. Triangles have a repeated node: the zero-length edge passes.
+      do L = 1, 4
+        edge = face_nodes(next_node(L), 1:2) - face_nodes(L, 1:2)
+        to_x = x(1:2) - face_nodes(L, 1:2)
+        if (face_normal(3)*(edge(1)*to_x(2) - edge(2)*to_x(1)) < -real(1e-6, pre)*face_radius**2) then
+          inside = .false.
+        endif
+      enddo
+    endif
+
+    if (inside) then
+      ! Once multiplied by -1/(4π) and projected on the normal, this gives 1.
+      ! (Same for the derivative with respect to the second variable, since face_normal is vertical.)
+      int_nablaG(:) = -4*pi*face_normal(:)
+    endif
   end subroutine
 
   ! =====================================================================
@@ -479,7 +539,6 @@ CONTAINS
         face_area, face_radius,                    &
         derivative_with_respect_to_first_variable, &
         [ONE, depth*lambda_k - 2*depth],           &
-        .false.,                                   &
         int_G_term_Rankine, int_nablaG_term_Rankine)
       int_G = int_G + a_k/2 * int_G_term_Rankine
       int_nablaG = int_nablaG + a_k/2 * int_nablaG_term_Rankine
@@ -491,7 +550,6 @@ CONTAINS
         face_area, face_radius,                    &
         derivative_with_respect_to_first_variable, &
         [-ONE, -depth*lambda_k],                   &
-        .false.,                                   &
         int_G_term_Rankine, int_nablaG_term_Rankine)
       int_G = int_G + a_k/2 * int_G_term_Rankine
       int_nablaG = int_nablaG + a_k/2 * int_nablaG_term_Rankine
@@ -503,7 +561,6 @@ CONTAINS
         face_area, face_radius,                    &
         derivative_with_respect_to_first_variable, &
         [-ONE, depth*lambda_k - 4*depth],          &
-        .false.,                                   &
         int_G_term_Rankine, int_nablaG_term_Rankine)
       int_G = int_G + a_k/2 * int_G_term_Rankine
       int_nablaG = int_nablaG + a_k/2 * int_nablaG_term_Rankine
@@ -515,7 +572,6 @@ CONTAINS
         face_area, face_radius,                    &
         derivative_with_respect_to_first_variable, &
         [ONE, -depth*lambda_k + 2*depth],          &
-        .false.,                                   &
         int_G_term_Rankine, int_nablaG_term_Rankine)
       int_G = int_G + a_k/2 * int_G_term_Rankine
       int_nablaG = int_nablaG + a_k/2 * int_nablaG_term_Rankine

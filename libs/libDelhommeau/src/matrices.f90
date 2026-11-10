@@ -64,10 +64,11 @@ contains
     ! Solver parameters
     integer,                                  intent(in) :: gf_singularities
     logical,                                  intent(in) :: adjoint_double_layer
-    ! Where a collocation point lies on a face, the self-influence term (½ n for K, ½ for D) is included
+    ! Where a collocation point lies on a face, the ½ self-influence term is included
     ! (see integral_of_Rankine). Faces on the free surface (low_freq or high_freq) or on the sea bottom
     ! (Delhommeau's finite depth) get 1 instead of ½, from the jump of the reflected Rankine term
-    ! (see exact_integral_of_reflected_Rankine).
+    ! (see exact_integral_of_reflected_Rankine), or, with high_freq at infinite frequency, from the limit of the wave part
+    ! (see integral_of_wave_part_infinite_frequency).
 
     real(kind=pre),                           intent(in) :: wavenumber, depth
 
@@ -94,7 +95,6 @@ contains
     complex(kind=pre)               :: int_G, int_G_wave
     complex(kind=pre), dimension(3) :: int_nablaG, int_nablaG_wave
     logical :: derivative_with_respect_to_first_variable, finite_depth, finite_wavenumber
-    logical :: reversed_limit_side_of_free_surface_image
 
     derivative_with_respect_to_first_variable = adjoint_double_layer
     ! When computing the adjoint double layer operator (K), the derivative of the Green function is computed with respect to its
@@ -111,16 +111,6 @@ contains
     else
       sign_reflected_Rankine = +ONE
     endif
-
-    reversed_limit_side_of_free_surface_image = (gf_singularities == HIGH_FREQ)
-    ! The jump term of the free surface image (reflected Rankine part) is computed from the opposite side for high_freq,
-    ! and then multiplied by sign_reflected_Rankine = -1 below: the jump keeps the same sign for low_freq and high_freq,
-    ! such that faces on the free surface get coefficient 1 in both cases.
-    ! In practice, high_freq is only used with faces on the free surface at infinite frequency (the Python code switches
-    ! to low_freq otherwise). There, G = 1/r - 1/r_reflected vanishes when either point is on the free surface, so
-    ! without this coefficient, the columns of K (resp. the rows of S and D) of these faces would be zero and the
-    ! matrices singular. With it, the sources on these faces are decoupled from the rest of the problem and have no
-    ! influence on the flow (indirect method), and the potential on these faces is zero (direct method), as expected.
 
     !$OMP PARALLEL DO SCHEDULE(DYNAMIC) &
     !$OMP&  PRIVATE(J, I, int_G, int_nablaG, int_G_Rankine, int_nablaG_Rankine, &
@@ -176,7 +166,6 @@ contains
             radiuses(J),                               &
             derivative_with_respect_to_first_variable, &
             [-ONE, ZERO],                              &
-            reversed_limit_side_of_free_surface_image, &
             int_G_Rankine,                             &
             int_nablaG_Rankine                         &
             )
@@ -205,6 +194,15 @@ contains
               derivative_with_respect_to_first_variable,                 &
               int_G_wave, int_nablaG_wave                                &
               )
+              int_G = int_G + int_G_wave
+              int_nablaG(:) = int_nablaG(:) + int_nablaG_wave(:)
+          else if (gf_singularities == HIGH_FREQ) then
+            ! Infinite wavenumber: zero, except the self-influence of faces on the free surface
+            call integral_of_wave_part_infinite_frequency        &
+              (collocation_points(I, :),                         &
+              vertices(faces(J, :), :),                          &
+              centers(J, :), normals(J, :), radiuses(J),         &
+              int_G_wave, int_nablaG_wave)
               int_G = int_G + int_G_wave
               int_nablaG(:) = int_nablaG(:) + int_nablaG_wave(:)
           ! else zero, assuming gf_singularities has been set up correctly, that is
@@ -242,7 +240,6 @@ contains
               radiuses(J),                               &
               derivative_with_respect_to_first_variable, &
               [-ONE, -2*depth],                          &
-              .false.,                                   &
               int_G_Rankine, int_nablaG_Rankine          &
               )
             int_G = int_G + int_G_Rankine
@@ -303,6 +300,15 @@ contains
                 )
               int_G = int_G + int_G_wave
               int_nablaG(:) = int_nablaG(:) + int_nablaG_wave(:)
+            else if (gf_singularities == HIGH_FREQ) then
+              ! Infinite wavenumber: zero, except the self-influence of faces on the free surface
+              call integral_of_wave_part_infinite_frequency        &
+                (collocation_points(I, :),                         &
+                vertices(faces(J, :), :),                          &
+                centers(J, :), normals(J, :), radiuses(J),         &
+                int_G_wave, int_nablaG_wave)
+                int_G = int_G + int_G_wave
+                int_nablaG(:) = int_nablaG(:) + int_nablaG_wave(:)
             ! else zero, assuming gf_singularities has been set up correctly, that is
             ! low_freq for wavenumber = 0 and high_freq for wavenumber = inf
             endif

@@ -128,6 +128,29 @@ that is
 
 As discussed in [A24]_, working with the low-frequency variant is usually more accurate and is thus the default in recent version of Capytaine.
 
+.. note::
+   *Self-influence of panels on the free surface*
+
+   Both variants are the same Green function, but they do not split its singularities in the same way, which matters for the self-influence term of the double layer operators of a horizontal panel on the free surface.
+   When :math:`x` lies on such a panel, both :math:`\frac{1}{|x - \xi|}` and :math:`\frac{1}{|x - S_0(\xi)|}` are singular, and the normal derivative of each of them jumps across the panel.
+
+   In the low-frequency variant, the two Rankine terms have the same sign: their jumps add up and the coefficient on the diagonal of the double layer operators is :math:`1` instead of the usual :math:`1/2`.
+   The jumps come out of the exact integration of the Rankine terms over the panel.
+
+   In the high-frequency variant, the jump of :math:`- \frac{1}{|x - S_0(\xi)|}` cancels the jump of :math:`\frac{1}{|x - \xi|}`.
+   The missing part is hidden in the wave term, since
+
+   .. math::
+      k \, \mathcal{G}^-(kr, kz) = k \, \mathcal{G}^+(kr, kz) + \frac{2}{|x - S_0(\xi)|},
+
+   but the wave term is integrated numerically and does not provide this jump.
+   The two variants are thus not symmetric: exactly integrating the Rankine terms gives the correct self-influence term with the low-frequency variant only.
+
+   In general, panels on the free surface are not supported in Capytaine with the high-frequency variant.
+   A special workaround is implemented at infinite frequency, since the low-frequency variant cannot be used there.
+   At infinite frequency, :math:`k \, \mathcal{G}^- \rightarrow 0`, but the jump of the normal derivative of :math:`\frac{2}{|x - S_0(\xi)|}` across the panel does not depend on :math:`k` and remains.
+   Capytaine adds it explicitly as the limit of the wave term, such that panels on the free surface also get the coefficient :math:`1` (where :math:`G = 0`, the sources on these panels are decoupled from the rest of the problem).
+
 .. prf:property::
    :label: green_function_inf_depth_z_derivative
 

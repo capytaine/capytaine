@@ -187,6 +187,13 @@ Each element of the matrices :math:`S` and :math:`K` can be seen as the interact
    The matrix :math:`D` is used in the `direct` boundary integral equation, as e.g. in HAMS [Liu19]_.
    In the mathematical literature, :math:`D` is also referred to as the `double layer operator` and :math:`K` as the `adjoint double layer operator`.
 
+   For :math:`i \neq j`, the two integrals only differ by the variable of derivation and the normal vector.
+   On the diagonal, the term :math:`\delta_{ij}/2` has the same sign in both matrices, although the two integrals jump with opposite signs when :math:`x` crosses the face :math:`\Gamma_i`, since :math:`\nabla_\xi G = - \nabla_x G` for the singular part of :math:`G`.
+   For :math:`K`, the term :math:`1/2` is the limit of the integral when :math:`x` approaches the face from the fluid side.
+   For :math:`D`, the limit of the integral from the fluid side is :math:`-1/2` and the term :math:`1/2` is the sum of this limit and of the term :math:`\Phi(x)` of the direct boundary integral equation, written for :math:`x` in the fluid as :math:`\Phi(x) + \iint_\Gamma \Phi(\xi) \nabla_\xi G(x; \xi) \cdot n(\xi) \, \mathrm{dS}(\xi) = \iint_\Gamma G(x; \xi) \frac{\partial \Phi}{\partial n}(\xi) \, \mathrm{dS}(\xi)`.
+   Since the integral jumps by :math:`1` across the face, it is also its limit when :math:`x` approaches the face from the other side (inside the body).
+   In the code, the diagonal terms are computed by evaluating the integral of the Rankine part of :math:`G` as a one-sided limit: from the fluid side for :math:`K` and from the other side for :math:`D`.
+
 
 The matrices :math:`S` and :math:`K` relates the vectors :math:`\Phi`, :math:`u` and :math:`\sigma` through the following approximations of :eq:`potential_representation` and :eq:`normal_velocity_on_hull_representation`:
 
