@@ -31,8 +31,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Just
-        run: sudo apt install -y just
+      - name: Set up Just and Xvfb
+        run: sudo apt install -y just xvfb
 
       - name: Set up UV
         uses: astral-sh/setup-uv@v5

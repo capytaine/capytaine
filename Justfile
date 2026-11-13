@@ -173,13 +173,18 @@ test_fortran_compilation:
 
 
 # Warning: uncommitted changes might be ignored
+# The front page animation is rendered with vedo, using `xvfb-run` if available (e.g. on a machine without display).
 build_docs:
     uv run \
         --isolated \
         --no-editable --with "capytaine[optional,more_visualisation] @ ." --refresh-package="capytaine" \
         --group docs \
         -- \
-        make --directory="./docs/"
+        sh -c ' \
+            $(command -v xvfb-run > /dev/null && echo "xvfb-run -a") python docs/examples/src/B7_boat_animation.py && \
+            mv animated_boat.mp4 docs/_static/front_page_animation.mp4 && \
+            make --directory="./docs/" \
+        '
 
 
 clean:
