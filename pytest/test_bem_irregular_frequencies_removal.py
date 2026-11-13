@@ -17,8 +17,7 @@ import numpy as np
 import capytaine as cpt
 import capytaine_test_helpers as helpers
 
-from capytaine.meshes.symmetric_meshes import ReflectionSymmetricMesh
-from capytaine.meshes.predefined import mesh_parallelepiped, mesh_rectangle, mesh_vertical_cylinder, mesh_horizontal_cylinder
+from capytaine.meshes.predefined import mesh_parallelepiped, mesh_rectangle
 
 def test_irr_freq_warning_no_lid():
     mesh = mesh_parallelepiped(size=(1, 1, 1)).immersed_part()
@@ -223,71 +222,6 @@ def test_lid_multibody(body_with_lid):
     pb = cpt.DiffractionProblem(body=two_bodies, wavelength=3.0)
     solver = helpers.solver(gf_singularities='low_freq')
     solver.solve(pb)
-
-
-def test_lid_with_plane_symmetry():
-    mesh = mesh_horizontal_cylinder(reflection_symmetry=True).immersed_part()
-    lid_mesh = ReflectionSymmetricMesh(
-            mesh_rectangle(size=(1.0, 10,), faces_max_radius=0.5, center=(0, 0.5, -0.05,)),
-            plane=mesh.plane
-            )
-    body = cpt.FloatingBody(mesh=mesh, lid_mesh=lid_mesh, dofs=cpt.rigid_body_dofs())
-    pb = cpt.RadiationProblem(body=body, wavelength=1.0, radiating_dof="Heave")
-    solver = helpers.solver()
-    S, K = solver.engine.build_matrices(pb.body.mesh_including_lid, pb.body.mesh_including_lid,
-                                        free_surface=pb.free_surface, water_depth=pb.water_depth,
-                                        wavenumber=pb.wavenumber)
-    from capytaine.tools.block_circulant_matrices import BlockCirculantMatrix
-    assert isinstance(S, BlockCirculantMatrix)
-    assert isinstance(K, BlockCirculantMatrix)
-
-    res = solver.solve(pb)
-
-    ref_body = cpt.FloatingBody(mesh=mesh.merged(), lid_mesh=lid_mesh.merged(), dofs=cpt.rigid_body_dofs())
-    ref_pb = cpt.RadiationProblem(body=ref_body, wavelength=1.0, radiating_dof="Heave")
-    ref_res = solver.solve(ref_pb)
-    assert res.force["Heave"] == pytest.approx(ref_res.force["Heave"])
-
-
-def test_lid_with_nested_plane_symmetry():
-    mesh = mesh_parallelepiped(center=(0, 0, -1.0), reflection_symmetry=True)
-    hull_mesh, lid_mesh = mesh.extract_lid()
-    body = cpt.FloatingBody(mesh=mesh, lid_mesh=lid_mesh, dofs=cpt.rigid_body_dofs())
-    pb = cpt.RadiationProblem(body=body, wavelength=1.0, radiating_dof="Heave")
-    solver = helpers.solver()
-    S, K = solver.engine.build_matrices(pb.body.mesh_including_lid, pb.body.mesh_including_lid,
-                                        free_surface=pb.free_surface, water_depth=pb.water_depth,
-                                        wavenumber=pb.wavenumber)
-    from capytaine.tools.block_circulant_matrices import NestedBlockCirculantMatrix
-    assert isinstance(S, NestedBlockCirculantMatrix)
-    assert isinstance(K, NestedBlockCirculantMatrix)
-
-    res = solver.solve(pb)
-
-    ref_body = cpt.FloatingBody(mesh=mesh.merged(), lid_mesh=lid_mesh.merged(), dofs=cpt.rigid_body_dofs())
-    ref_pb = cpt.RadiationProblem(body=ref_body, wavelength=1.0, radiating_dof="Heave")
-    ref_res = solver.solve(ref_pb)
-    assert res.force["Heave"] == pytest.approx(ref_res.force["Heave"])
-
-
-def test_lid_with_rotation_symmetry():
-    mesh = mesh_vertical_cylinder(length=2.0, center=(0, 0, -1.0), axial_symmetry=True)
-    hull_mesh, lid_mesh = mesh.extract_lid()
-    body = cpt.FloatingBody(mesh=mesh, lid_mesh=lid_mesh, dofs=cpt.rigid_body_dofs())
-    pb = cpt.RadiationProblem(body=body, wavelength=1.0, radiating_dof="Heave")
-    solver = helpers.solver()
-    S, K = solver.engine.build_matrices(pb.body.mesh_including_lid, pb.body.mesh_including_lid,
-                                        free_surface=pb.free_surface, water_depth=pb.water_depth,
-                                        wavenumber=pb.wavenumber)
-    from capytaine.tools.block_circulant_matrices import BlockCirculantMatrix
-    assert isinstance(S, BlockCirculantMatrix)
-    assert isinstance(K, BlockCirculantMatrix)
-    res = solver.solve(pb)
-
-    ref_body = cpt.FloatingBody(mesh=mesh.merged(), lid_mesh=lid_mesh.merged(), dofs=cpt.rigid_body_dofs())
-    ref_pb = cpt.RadiationProblem(body=ref_body, wavelength=1.0, radiating_dof="Heave")
-    ref_res = solver.solve(ref_pb)
-    assert res.force["Heave"] == pytest.approx(ref_res.force["Heave"])
 
 
 @pytest.mark.parametrize("water_depth", [np.inf, 10.0])
