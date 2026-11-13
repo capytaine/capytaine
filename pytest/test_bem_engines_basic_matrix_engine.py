@@ -113,7 +113,7 @@ def test_all_linear_solvers_work():
     result_lu_with_overwrite = bem_solver_lu_with_overwrite.solve(problem)
 
     bem_solver_gmres = cpt.BEMSolver(
-        engine=cpt.DefaultMatrixEngine(linear_solver="lu_decomposition")
+        engine=cpt.DefaultMatrixEngine(linear_solver="gmres")
     )
 
     result_gmres = bem_solver_gmres.solve(problem)
@@ -202,8 +202,9 @@ def test_ram_1_reflection_symmetry_estimation():
         linear_solver="lu_decomposition_with_overwrite"
     ).compute_ram_estimation(problem)
 
-    assert gmres_estimation == nb_faces**2 * 2 * 16 / 1e9 / 2
-    assert gmres_estimation_float == nb_faces**2 * 2 * 8 / 1e9 / 2
+    # GMRES: the two matrices, plus their block diagonalization in the solver
+    assert gmres_estimation == pytest.approx(nb_faces**2 * 16 * (2 * 1/2 + 1/2) / 1e9)
+    assert gmres_estimation_float == pytest.approx(nb_faces**2 * 8 * (2 * 1/2 + 1/2) / 1e9)
     assert round(lu_estimation,7) == nb_faces**2 * 16 * (2 * 1/2 + 1/2 + 1/2) / 1e9
     assert lu_overwrite_estimation == nb_faces**2 * 16 * (2 * 1/2 + 1/2) / 1e9
 
@@ -237,8 +238,8 @@ def test_ram_2_reflection_symmetries_estimation():
         linear_solver="lu_decomposition_with_overwrite"
     ).compute_ram_estimation(problem)
 
-    assert gmres_estimation == nb_faces**2 * 2 * 16 / 1e9 / 4
-    assert gmres_estimation_float == nb_faces**2 * 2 * 8 / 1e9 / 4
+    assert gmres_estimation == pytest.approx(nb_faces**2 * 16 * (2 * 1/4 + 1/4) / 1e9)
+    assert gmres_estimation_float == pytest.approx(nb_faces**2 * 8 * (2 * 1/4 + 1/4) / 1e9)
     assert lu_estimation == nb_faces**2 * 16 * (2 * 1/4 + 1/4 + 1/2) / 1e9
     assert lu_overwrite_estimation == nb_faces**2 * 16 * (2 * 1/4 + 1/2) / 1e9
 
@@ -273,8 +274,8 @@ def test_ram_rotation_symmetries_estimation(n):
         linear_solver="lu_decomposition_with_overwrite"
     ).compute_ram_estimation(problem)
 
-    assert gmres_estimation == nb_faces**2 * 2 * 16 / 1e9 / n
-    assert gmres_estimation_float == nb_faces**2 * 2 * 8 / 1e9 / n
+    assert gmres_estimation == pytest.approx(nb_faces**2 * 16 * (2 * 1/n + 1/n) / 1e9)
+    assert gmres_estimation_float == pytest.approx(nb_faces**2 * 8 * (2 * 1/n + 1/n) / 1e9)
     assert lu_estimation == nb_faces**2 * 16 * (2 * 1/n + 1/n + 1/n) / 1e9
     assert lu_overwrite_estimation == nb_faces**2 * 16 * (2 * 1/n + 1/n) / 1e9
 
