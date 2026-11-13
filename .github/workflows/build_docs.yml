@@ -48,7 +48,7 @@ jobs:
         run: sudo apt install -y xvfb
 
       - name: Set up UV
-        uses: astral-sh/setup-uv@v10
+        uses: astral-sh/setup-uv@v10.3.3
         with:
           enable-cache: true
 
