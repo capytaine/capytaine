@@ -48,6 +48,10 @@ Minor changes
 
 * Build wheels for Linux on aarch64 (ARM64), such as AWS Graviton instances or Linux containers on Apple Silicon Macs.
 
+* With ``linear_solver="gmres"`` and a mesh with symmetries, the right-hand side is transformed with a FFT and an independent GMRES is solved for each diagonal block of the block-diagonalized matrix, instead of a single GMRES using the matrix-vector product of the block circulant matrix.
+  The number of iterations differs from previous versions, and the GMRES of each block stops as soon as this block has converged.
+  The block-diagonalized matrix is a temporary copy of the size of the compressed matrix, which is now taken into account in the RAM estimation of :class:`~capytaine.bem.engines.DefaultMatrixEngine`.
+
 Bug fixes
 ~~~~~~~~~
 
@@ -83,13 +87,13 @@ Bug fixes
 Internals
 ~~~~~~~~~
 
-* Methods about LU decomposition of numpy arrays have moved from :mod:`~capytaine.tools.block_circulant_matrices` to the new module :mod:`~capytaine.bem.linear_solvers`.
-  :func:`~capytaine.bem.linear_solvers.lu_decompose` is now a :func:`functools.singledispatch` function,
+* Methods about LU decomposition of numpy arrays have moved from :mod:`~capytaine.tools.block_circulant_matrices` to the new module :mod:`~capytaine.bem.linear_solvers`, and the GMRES solver has moved from :mod:`~capytaine.bem.engines` to the same module as :func:`~capytaine.bem.linear_solvers.solve_gmres`.
+  :func:`~capytaine.bem.linear_solvers.lu_decompose` and :func:`~capytaine.bem.linear_solvers.solve_gmres` are now :func:`functools.singledispatch` functions,
   and the LU decompositions are subclasses of the new abstract class :class:`~capytaine.bem.linear_solvers.AbstractLUDecomposedMatrix`.
-  The LU decomposition of a new type of matrices can be supported by the linear solver of the :class:`~capytaine.bem.engines.DefaultMatrixEngine` by registering it with ``lu_decompose.register``. (:pull:`954`)
+  The LU decomposition or GMRES solve of a new type of matrices can be supported by the linear solver of the :class:`~capytaine.bem.engines.DefaultMatrixEngine` by registering it with ``lu_decompose.register`` and ``solve_gmres.register``. (:pull:`954`)
 
 * Add the dependency `array-api-compat <https://data-apis.org/array-api-compat/>`_ (and `array-api-strict <https://github.com/data-apis/array-api-strict>`_ to the test dependencies).
-  The new module :mod:`capytaine.tools.array_backend` provides helpers (``is_array``, ``complex_dtype``, ``to_backend_of``, ``to_numpy``) to write code that works with any array library implementing the array API standard. (:pull:`956`)
+  The new module :mod:`capytaine.tools.array_backend` provides helpers (``is_array``, ``complex_dtype``, ``as_complex``, ``to_backend_of``, ``to_numpy``) to write code that works with any array library implementing the array API standard. (:pull:`956`)
 
 * The :class:`~capytaine.bem.solver.BEMSolver` and the :class:`~capytaine.bem.engines.DefaultMatrixEngine` can now work with a Green function returning matrices from another array library than NumPy, as long as it implements the array API standard (using ``array-api-compat``) and an LU decomposition has been registered with :func:`~capytaine.bem.linear_solvers.lu_decompose`. (:pull:`957`)
   The results and the post-processing stay NumPy arrays.
