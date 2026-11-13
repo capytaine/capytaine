@@ -174,6 +174,7 @@ test_fortran_compilation:
 
 # Warning: uncommitted changes might be ignored
 # The front page animation is rendered with vedo, using `xvfb-run` if available (e.g. on a machine without display).
+# It is not rendered again if it already exists: delete docs/_static/front_page_animation.mp4 to update it.
 build_docs:
     uv run \
         --isolated \
@@ -181,8 +182,10 @@ build_docs:
         --group docs \
         -- \
         sh -c ' \
-            $(command -v xvfb-run > /dev/null && echo "xvfb-run -a") python docs/examples/src/B7_boat_animation.py && \
-            mv animated_boat.mp4 docs/_static/front_page_animation.mp4 && \
+            if [ ! -f docs/_static/front_page_animation.mp4 ]; then \
+                $(command -v xvfb-run > /dev/null && echo "xvfb-run -a") python docs/examples/src/B7_boat_animation.py && \
+                mv animated_boat.mp4 docs/_static/front_page_animation.mp4; \
+            fi && \
             make --directory="./docs/" \
         '
 

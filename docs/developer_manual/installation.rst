@@ -198,6 +198,7 @@ Alternatively, use::
 The animation on the front page of the documentation, ``docs/_static/front_page_animation.mp4``, is not stored in the repository.
 It is rendered by the example ``docs/examples/src/B7_boat_animation.py``, which requires the extra dependencies ``more_visualisation`` (``vedo`` and ``imageio[ffmpeg]``).
 ``just build_docs`` renders it before building the documentation (on a machine without a display, such as a server or a container, it requires ``xvfb-run``, from the ``xvfb`` package on Debian and Ubuntu).
+It is not rendered again if it already exists: delete it to update it after changing the example.
 When building the documentation with ``make``, render it first by running, from the root of the repository::
 
     python docs/examples/src/B7_boat_animation.py
