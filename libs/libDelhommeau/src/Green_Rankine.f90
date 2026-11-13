@@ -19,7 +19,7 @@ module Green_Rankine
   implicit none
 
   ! The index of the following node when going around a face.
-  integer, dimension(4), parameter :: next_node = (/ 2, 3, 4, 1 /)
+  integer, private, dimension(4), parameter :: next_node = (/ 2, 3, 4, 1 /)
 
 contains
 
