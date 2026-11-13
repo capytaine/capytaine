@@ -62,10 +62,9 @@ def test_shapes_of_S_and_K(gf_class, config, adjoint_double_layer, early_dot_pro
 def test_evaluate_at_array_of_points(gf_class, config, early_dot_product):
     mesh = helpers.small_sphere_mesh()
     points = np.array([[2.0, 0.0, -1.0], [0.0, 3.0, -2.0], [1.0, 1.0, -4.0]])
-    # The diagonal term requires the normals of the receiving mesh, so it cannot be used with points.
     S, K = gf_class().evaluate(
         points, mesh, wavenumber=1.0, early_dot_product=early_dot_product,
-        adjoint_double_layer=True, diagonal_term_in_double_layer=False,
+        adjoint_double_layer=True,
         **config,
     )
     assert S.shape == (3, mesh.nb_faces)

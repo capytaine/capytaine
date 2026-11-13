@@ -479,6 +479,7 @@ CONTAINS
         face_area, face_radius,                    &
         derivative_with_respect_to_first_variable, &
         [ONE, depth*lambda_k - 2*depth],           &
+        .false.,                                   &
         int_G_term_Rankine, int_nablaG_term_Rankine)
       int_G = int_G + a_k/2 * int_G_term_Rankine
       int_nablaG = int_nablaG + a_k/2 * int_nablaG_term_Rankine
@@ -490,6 +491,7 @@ CONTAINS
         face_area, face_radius,                    &
         derivative_with_respect_to_first_variable, &
         [-ONE, -depth*lambda_k],                   &
+        .false.,                                   &
         int_G_term_Rankine, int_nablaG_term_Rankine)
       int_G = int_G + a_k/2 * int_G_term_Rankine
       int_nablaG = int_nablaG + a_k/2 * int_nablaG_term_Rankine
@@ -501,6 +503,7 @@ CONTAINS
         face_area, face_radius,                    &
         derivative_with_respect_to_first_variable, &
         [-ONE, depth*lambda_k - 4*depth],          &
+        .false.,                                   &
         int_G_term_Rankine, int_nablaG_term_Rankine)
       int_G = int_G + a_k/2 * int_G_term_Rankine
       int_nablaG = int_nablaG + a_k/2 * int_nablaG_term_Rankine
@@ -512,6 +515,7 @@ CONTAINS
         face_area, face_radius,                    &
         derivative_with_respect_to_first_variable, &
         [ONE, -depth*lambda_k + 2*depth],          &
+        .false.,                                   &
         int_G_term_Rankine, int_nablaG_term_Rankine)
       int_G = int_G + a_k/2 * int_G_term_Rankine
       int_nablaG = int_nablaG + a_k/2 * int_nablaG_term_Rankine

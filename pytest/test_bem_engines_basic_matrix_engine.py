@@ -284,7 +284,7 @@ def test_symmetry(name):
     sym_mesh = helpers.symmetric_meshes_of_single_panel()[name]
     ref_mesh = sym_mesh.merged()
     engine = cpt.DefaultMatrixEngine()
-    params = dict(free_surface=0.0, water_depth=np.inf, wavenumber=1.0, diagonal_term_in_double_layer=True)
+    params = dict(free_surface=0.0, water_depth=np.inf, wavenumber=1.0)
     S_ref, K_ref = engine.build_matrices(ref_mesh, ref_mesh, **params)
     S, K = engine.build_matrices(sym_mesh, sym_mesh, **params)
     np.testing.assert_allclose(np.array(S), S_ref, atol=1e-12)

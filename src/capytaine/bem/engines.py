@@ -180,14 +180,13 @@ class DefaultMatrixEngine(MatrixEngine):
         The array library of the returned array is the one of the Green function."""
         # TODO: could use symmetries. In particular for forward, we compute the
         # full velocity on the same mesh so symmetries could be used.
-        gf_params.setdefault("diagonal_term_in_double_layer", True)  # Unclear if this is a good default
         gf_params.setdefault("adjoint_double_layer", True)
         gf_params.setdefault("early_dot_product", False)
         _, fullK = self.green_function.evaluate(mesh1, mesh2.merged(), **gf_params)
         check_if_nan_in_matrix([fullK])
         return fullK
 
-    def _build_matrices_with_symmetries(self, mesh1, mesh2, *, diagonal_term_in_double_layer=True, **gf_params) -> Tuple[MatrixLike, MatrixLike]:
+    def _build_matrices_with_symmetries(self, mesh1, mesh2, **gf_params) -> Tuple[MatrixLike, MatrixLike]:
         gf_params.setdefault("early_dot_product", True)
 
         if (isinstance(mesh1, ReflectionSymmetricMesh)
@@ -200,7 +199,6 @@ class DefaultMatrixEngine(MatrixEngine):
                 # Nested plane symmetries
                 S, K = self.green_function.evaluate(
                     mesh1.merged(), mesh2.half.half,
-                    diagonal_term_in_double_layer=diagonal_term_in_double_layer,
                     **gf_params
                 )
                 check_if_nan_in_matrix([S, K])
@@ -215,7 +213,6 @@ class DefaultMatrixEngine(MatrixEngine):
                 # Single plane symmetries
                 S, K = self.green_function.evaluate(
                     mesh1.merged(), mesh2.half,
-                    diagonal_term_in_double_layer=diagonal_term_in_double_layer,
                     **gf_params
                 )
                 check_if_nan_in_matrix([S, K])
@@ -232,7 +229,6 @@ class DefaultMatrixEngine(MatrixEngine):
                 # Dihedral symmetry
                 S, K = self.green_function.evaluate(
                     mesh1.merged(), mesh2.wedge.half,
-                    diagonal_term_in_double_layer=diagonal_term_in_double_layer,
                     **gf_params
                 )
                 check_if_nan_in_matrix([S, K])
@@ -244,7 +240,6 @@ class DefaultMatrixEngine(MatrixEngine):
                 # Rotation symmetry
                 S_cols, K_cols = self.green_function.evaluate(
                         mesh1.merged(), mesh2.wedge,
-                        diagonal_term_in_double_layer=diagonal_term_in_double_layer,
                         **gf_params,
                         )
                 # Building the first column of blocks, that is the interactions of all of mesh1 with the reference wedge of mesh2.
@@ -261,7 +256,6 @@ class DefaultMatrixEngine(MatrixEngine):
         else:
             S, K = self.green_function.evaluate(
                 mesh1, mesh2,
-                diagonal_term_in_double_layer=diagonal_term_in_double_layer,
                 **gf_params
             )
             check_if_nan_in_matrix([S, K])

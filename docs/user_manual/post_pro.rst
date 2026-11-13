@@ -214,13 +214,6 @@ in particular, the following can be used to compute the value on the mesh used f
 
 The returned values is an array of shape matching the shape of the input points.
 
-.. warning::
-   There is a single case in which passing a mesh is not equivalent to a list of point: if you want the compute the velocity on the hull of the floating body. In this case, you should give the same mesh object that has been used for the resolution::
-
-        solver.compute_velocity(result.body.mesh, result)
-
-   Other Python objects might return incorrect values or errors.
-
 For potential, pressure and velocity, 3 coordinates :math:`(x, y, z)` are expected for each points.
 For the free surface elevation, 2 coordinates :math:`(x, y)` are sufficient.
 
