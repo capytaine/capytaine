@@ -5,6 +5,13 @@ from capytaine.bem.airy_waves import airy_waves_free_surface_elevation
 from capytaine.ui.vedo_animations import Animation
 
 from vedo import Light
+from matplotlib.colors import LinearSegmentedColormap
+
+# Colors of the Capytaine logo
+NAVY, GOLD = "#21355d", "#fbc02d"
+# Lighter colormap for the waves, inspired by the logo colors, such that the
+# dark boat stands out. The warm grey avoids going through green between blue and gold.
+WAVES_CMAP = LinearSegmentedColormap.from_list("capytaine_waves", ["#5a7aa6", "#4dbde0", "#c4bfb6", "#f2cf6a"])
 
 
 bem_solver = cpt.BEMSolver()
@@ -47,8 +54,9 @@ def setup_animation(body, fs, omega, wave_amplitude, wave_direction):
 
     # Set up scene
     animation = Animation(loop_duration=2*pi/omega)
-    animation.add_body(body, vertices_motion=wave_amplitude*rao_vertices_motion)
-    animation.add_free_surface(fs, wave_amplitude * (incoming_waves_elevation + diffraction_elevation + radiation_elevation))
+    animation.add_body(body, vertices_motion=wave_amplitude*rao_vertices_motion, color=NAVY, edge_color=GOLD)
+    animation.add_free_surface(fs, wave_amplitude * (incoming_waves_elevation + diffraction_elevation + radiation_elevation),
+                               cmap=WAVES_CMAP)
     return animation
 
 
@@ -61,7 +69,8 @@ if __name__ == '__main__':
     params = dict(
         camera={"pos": (70, 70, 100)},
         lights=[Light([0, 0, 100], intensity=0.8)],
-        resolution=(800, 600)
+        resolution=(960, 720),  # Multiple of 16 to avoid resizing by the video encoder
+        axes=0,
     )
     # anim.run(**params)
-    anim.save("animated_boat.mp4", **params)
+    anim.save("animated_boat.mp4", **params)  # Used as docs/_static/front_page_animation.mp4
