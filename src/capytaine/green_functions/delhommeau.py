@@ -27,6 +27,21 @@ from capytaine.green_functions.abstract_green_function import AbstractGreenFunct
 
 LOG = logging.getLogger(__name__)
 
+
+def _check_supported_gf_singularities(gf_singularities, wavenumber, mesh2):
+    """Raise the same errors as the Fortran core (which stops the whole process with `error stop`),
+    see `integral_of_wave_part_infinite_depth` in Green_wave.f90.
+    The overrides in `Delhommeau.evaluate` should already avoid these cases."""
+    if wavenumber == 0.0 and gf_singularities == "high_freq":
+        raise NotImplementedError("The high_freq Green function is not supported at zero frequency.")
+    if wavenumber == np.inf and gf_singularities != "high_freq":
+        raise NotImplementedError("Only the high_freq Green function is supported at infinite frequency.")
+    if (0.0 < wavenumber < np.inf and gf_singularities == "high_freq"
+            and np.any(abs(mesh2.faces_centers[:, 2]) < 1e-6)):
+        raise NotImplementedError(
+            "Faces on the free surface are not supported by the high_freq Green function at finite frequency."
+        )
+
 class Delhommeau(AbstractGreenFunction):
     """The Green function as implemented in Aquadyn and Nemoh.
 
@@ -434,20 +449,23 @@ class Delhommeau(AbstractGreenFunction):
         wavenumber = float(wavenumber)
 
         # Overrides gf_singularities setting in some specific cases, else use the class one.
-        if water_depth < np.inf and self.finite_depth_method == 'legacy' and not self.gf_singularities == 'low_freq':
+        # The limit frequencies come first: they are only supported by one variant of the Fortran core.
+        if wavenumber == 0.0:
+            gf_singularities = "low_freq"
+            if self.gf_singularities != gf_singularities:
+                LOG.debug(
+                    f"Overriding gf_singularities='{self.gf_singularities}' because of wavenumber==0.0"
+                )
+        elif wavenumber == np.inf:
+            gf_singularities = "high_freq"
+            if self.gf_singularities != gf_singularities:
+                LOG.debug(
+                    f"Overriding gf_singularities='{self.gf_singularities}' because of wavenumber==np.inf"
+                )
+        elif water_depth < np.inf and self.finite_depth_method == 'legacy' and not self.gf_singularities == 'low_freq':
             gf_singularities = "low_freq"  # Reproduce legacy method behavior
             LOG.debug(
                 f"Overriding gf_singularities='{self.gf_singularities}' because of finite_depth_method=='legacy'"
-            )
-        elif wavenumber == 0.0 and not self.gf_singularities == 'low_freq':
-            gf_singularities = "low_freq"
-            LOG.debug(
-                f"Overriding gf_singularities='{self.gf_singularities}' because of wavenumber==0.0"
-            )
-        elif wavenumber == np.inf and not self.gf_singularities == 'high_freq':
-            gf_singularities = "high_freq"
-            LOG.debug(
-                f"Overriding gf_singularities='{self.gf_singularities}' because of wavenumber==np.inf"
             )
         elif np.any(abs(mesh2.faces_centers[:, 2]) < 1e-6) and not self.gf_singularities == 'low_freq':
             gf_singularities = "low_freq"
@@ -457,6 +475,7 @@ class Delhommeau(AbstractGreenFunction):
             )
         else:
             gf_singularities = self.gf_singularities
+        _check_supported_gf_singularities(gf_singularities, wavenumber, mesh2)
         gf_singularities_index = self.gf_singularities_fortran_enum[gf_singularities]
 
         if water_depth == np.inf:

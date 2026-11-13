@@ -75,6 +75,10 @@ Bug fixes
   A lid slightly below the free surface (closer than ``5e-5`` times the radius of its faces) now also gets the coefficient 1 instead of 1/2, such that the coefficient varies continuously with the depth of the lid.
   Faces on the free surface are not supported by the legacy finite depth method (``finite_depth_method="legacy"``): they now get the coefficient 1/2 instead of 1.
   Non-planar quadrilateral faces (which are not officially supported) now get a coefficient slightly different from 1/2, consistent with the limit from the side of the normal.
+  For faces on the free surface (such as lids), the self-influence of the wave part is only computed at the center of the face: the velocity cannot be reconstructed at other points of these faces (see :doc:`user_manual/post_pro`).
+
+* At infinite frequency, ``Delhommeau(finite_depth_method="legacy", gf_singularities="high_freq")`` now uses the high_freq variant of the Green function, as the other settings do, instead of the low_freq one, which was giving wrong results at this frequency.
+  Unsupported combinations of frequency and ``gf_singularities`` now raise a ``NotImplementedError`` instead of returning wrong results.
 
 Internals
 ~~~~~~~~~

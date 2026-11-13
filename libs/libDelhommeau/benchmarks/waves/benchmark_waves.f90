@@ -86,7 +86,7 @@ call system_clock(starting_time)
 do i_sample = 1, n_samples
   call integral_of_wave_part_infinite_depth                      &
       (points(:, i_sample),                                      &
-      face_center, face_area,                                    &
+      face_center, face_normal, face_area, face_radius,          &
       face_quadrature_points, face_quadrature_weights,           &
       wavenumber,                                                &
       tabulation_nb_integration_points, tabulation_grid_shape,   &
@@ -108,7 +108,7 @@ call system_clock(starting_time)
 do i_sample = 1, n_samples
   call integral_of_wave_part_infinite_depth                      &
       (points(:, i_sample),                                      &
-      face_center, face_area,                                    &
+      face_center, face_normal, face_area, face_radius,          &
       face_quadrature_points, face_quadrature_weights,           &
       wavenumber,                                                &
       tabulation_nb_integration_points, LIANG_WU_NOBLESSE,       &
@@ -132,7 +132,7 @@ call system_clock(starting_time)
 do i_sample = 1, n_samples
   call integral_of_wave_parts_finite_depth                     &
     (points(:, i_sample),                                      &
-    face_center, face_area,                                    &
+    face_center, face_normal, face_area, face_radius,          &
     face_quadrature_points, face_quadrature_weights,           &
     wavenumber, depth,                                         &
     tabulation_nb_integration_points, tabulation_grid_shape,   &

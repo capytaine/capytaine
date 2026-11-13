@@ -68,7 +68,7 @@ contains
     ! (see integral_of_Rankine). Faces on the free surface (low_freq or high_freq) or on the sea bottom
     ! (Delhommeau's finite depth) get 1 instead of ½, from the jump of the reflected Rankine term
     ! (see exact_integral_of_reflected_Rankine), or, with high_freq at infinite frequency, from the limit of the wave part
-    ! (see integral_of_wave_part_infinite_frequency).
+    ! (see integral_of_high_freq_singularity_on_free_surface).
 
     real(kind=pre),                           intent(in) :: wavenumber, depth
 
@@ -94,7 +94,7 @@ contains
     real(kind=pre), dimension(3)    :: int_nablaG_rankine
     complex(kind=pre)               :: int_G, int_G_wave
     complex(kind=pre), dimension(3) :: int_nablaG, int_nablaG_wave
-    logical :: derivative_with_respect_to_first_variable, finite_depth, finite_wavenumber
+    logical :: derivative_with_respect_to_first_variable, finite_depth
 
     derivative_with_respect_to_first_variable = adjoint_double_layer
     ! When computing the adjoint double layer operator (K), the derivative of the Green function is computed with respect to its
@@ -103,8 +103,6 @@ contains
     ! variable (source point, often written xi, or sometimes M' in this code).
 
     finite_depth = (.not. is_infinity(depth))
-
-    finite_wavenumber = ((ZERO < wavenumber) .and. (.not. is_infinity(wavenumber)))
 
     if (gf_singularities == HIGH_FREQ) then
       sign_reflected_Rankine = -ONE
@@ -182,32 +180,19 @@ contains
           !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
           !  Infinite depth wave part  !
           !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-          if (finite_wavenumber) then
-            call integral_of_wave_part_infinite_depth                    &
-              (collocation_points(I, :),                                 &
-              centers(J, :), areas(J),                                   &
-              quad_points(J, :, :), quad_weights(J, :),                  &
-              wavenumber,                                                &
-              tabulation_nb_integration_points, tabulation_grid_shape,   &
-              tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-              gf_singularities,                                          &
-              derivative_with_respect_to_first_variable,                 &
-              int_G_wave, int_nablaG_wave                                &
-              )
-              int_G = int_G + int_G_wave
-              int_nablaG(:) = int_nablaG(:) + int_nablaG_wave(:)
-          else if (gf_singularities == HIGH_FREQ) then
-            ! Infinite wavenumber: zero, except the self-influence of faces on the free surface
-            call integral_of_wave_part_infinite_frequency        &
-              (collocation_points(I, :),                         &
-              vertices(faces(J, :), :),                          &
-              centers(J, :), normals(J, :), radiuses(J),         &
-              int_G_wave, int_nablaG_wave)
-              int_G = int_G + int_G_wave
-              int_nablaG(:) = int_nablaG(:) + int_nablaG_wave(:)
-          ! else zero, assuming gf_singularities has been set up correctly, that is
-          ! low_freq for wavenumber = 0 and high_freq for wavenumber = inf
-          endif
+          call integral_of_wave_part_infinite_depth                    &
+            (collocation_points(I, :),                                 &
+            centers(J, :), normals(J, :), areas(J), radiuses(J),       &
+            quad_points(J, :, :), quad_weights(J, :),                  &
+            wavenumber,                                                &
+            tabulation_nb_integration_points, tabulation_grid_shape,   &
+            tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+            gf_singularities,                                          &
+            derivative_with_respect_to_first_variable,                 &
+            int_G_wave, int_nablaG_wave                                &
+            )
+          int_G = int_G + int_G_wave
+          int_nablaG(:) = int_nablaG(:) + int_nablaG_wave(:)
 
         else  ! Finite depth
 
@@ -286,32 +271,19 @@ contains
             !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             !  Delhommeau's finite depth wave term  !
             !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            if (finite_wavenumber) then
-              call integral_of_wave_parts_finite_depth                     &
-                (collocation_points(I, :),                                 &
-                centers(J, :), areas(J),                                   &
-                quad_points(J, :, :), quad_weights(J, :),                  &
-                wavenumber, depth,                                         &
-                tabulation_nb_integration_points, tabulation_grid_shape,   &
-                tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-                gf_singularities,                                          &
-                derivative_with_respect_to_first_variable,                 &
-                int_G_wave, int_nablaG_wave                                &
-                )
-              int_G = int_G + int_G_wave
-              int_nablaG(:) = int_nablaG(:) + int_nablaG_wave(:)
-            else if (gf_singularities == HIGH_FREQ) then
-              ! Infinite wavenumber: zero, except the self-influence of faces on the free surface
-              call integral_of_wave_part_infinite_frequency        &
-                (collocation_points(I, :),                         &
-                vertices(faces(J, :), :),                          &
-                centers(J, :), normals(J, :), radiuses(J),         &
-                int_G_wave, int_nablaG_wave)
-                int_G = int_G + int_G_wave
-                int_nablaG(:) = int_nablaG(:) + int_nablaG_wave(:)
-            ! else zero, assuming gf_singularities has been set up correctly, that is
-            ! low_freq for wavenumber = 0 and high_freq for wavenumber = inf
-            endif
+            call integral_of_wave_parts_finite_depth                     &
+              (collocation_points(I, :),                                 &
+              centers(J, :), normals(J, :), areas(J), radiuses(J),       &
+              quad_points(J, :, :), quad_weights(J, :),                  &
+              wavenumber, depth,                                         &
+              tabulation_nb_integration_points, tabulation_grid_shape,   &
+              tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+              gf_singularities,                                          &
+              derivative_with_respect_to_first_variable,                 &
+              int_G_wave, int_nablaG_wave                                &
+              )
+            int_G = int_G + int_G_wave
+            int_nablaG(:) = int_nablaG(:) + int_nablaG_wave(:)
 
             call integral_of_prony_decomp_finite_depth        &
               (collocation_points(I, :),                      &

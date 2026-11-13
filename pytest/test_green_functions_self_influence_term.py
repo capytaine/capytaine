@@ -153,25 +153,43 @@ def test_coefficient_one_on_the_sea_bottom():
 
 
 @pytest.mark.parametrize("normal", [(0.0, 0.0, 1.0), (0.0, 0.0, -1.0)])
-def test_coefficient_one_inside_free_surface_faces_at_infinite_frequency(normal):
-    # Faces [-1, 0] x [-1, 0], [0, 1] x [-1, 0], [-1, 0] x [0, 1] and [0, 1] x [0, 1], listed in the order of the mesh.
+def test_coefficient_one_at_centers_of_free_surface_faces_at_infinite_frequency(normal):
+    # Only the centers of the faces on the free surface are supported (see the post-processing documentation).
     mesh = cpt.mesh_rectangle(size=(2.0, 2.0), resolution=(2, 2), center=(0.0, 0.0, 0.0), normal=normal)
     assert np.all(np.abs(mesh.faces_centers[:, 2]) < 1e-8)
-    points = np.array([
-        [0.1, 0.1, 0.0], [-0.9, 0.3, 0.0], [0.7, -0.8, 0.0], [-0.2, -0.95, 0.0],  # inside faces, off-center
-        [1.5, 0.5, 0.0], [-0.5, -3.0, 0.0],  # outside the mesh
-        [1e-3, 0.5, 0.0], [-1e-3, -1e-3, 0.0],  # very close to an edge, to the vertex shared by the four faces
+    points = np.concatenate([
+        mesh.faces_centers,  # given as an array of points, not as the mesh itself
+        np.array([[1.5, 0.5, 0.0], [-0.5, -3.0, 0.0]]),  # outside the mesh
     ])
     _, K = helpers.green_function().evaluate(
         points, mesh, wavenumber=np.inf, adjoint_double_layer=True, early_dot_product=False)
     K = np.real(K)
     assert np.all(np.isfinite(K))
     normal_K = np.einsum("ipj,ji->pj", K, mesh.faces_normals)  # Normal component on the faces
+    expected = np.concatenate([np.eye(mesh.nb_faces), np.zeros((2, mesh.nb_faces))])
+    np.testing.assert_allclose(normal_K, expected, atol=1e-10)
 
-    # Shape (nb_points, nb_faces): 1 for the face containing the point, 0 for the others.
-    eps = 1e-8
-    x, y = points[:, 0:1], points[:, 1:2]
-    half_size = mesh.faces_radiuses[None, :] / np.sqrt(2)
-    inside = (np.abs(x - mesh.faces_centers[None, :, 0]) <= half_size + eps) \
-        & (np.abs(y - mesh.faces_centers[None, :, 1]) <= half_size + eps)
-    np.testing.assert_allclose(normal_K, inside.astype(float), atol=1e-10)
+
+@pytest.mark.parametrize("gf_singularities, wavenumber", [
+    ("high_freq", 0.0),  # The high_freq wave part does not vanish at zero frequency
+    ("low_freq", np.inf),  # The low_freq wave part does not vanish at infinite frequency
+    ("high_freq", 1.0),  # Faces on the free surface not supported
+])
+def test_unsupported_gf_singularities_raise(gf_singularities, wavenumber):
+    # The Fortran core would stop the whole process instead.
+    from capytaine.green_functions.delhommeau import _check_supported_gf_singularities
+    mesh = cpt.mesh_rectangle(size=(2.0, 2.0), resolution=(2, 2), center=(0.0, 0.0, 0.0), normal=(0.0, 0.0, 1.0))
+    with pytest.raises(NotImplementedError):
+        _check_supported_gf_singularities(gf_singularities, wavenumber, mesh)
+
+
+def test_legacy_finite_depth_high_freq_at_infinite_frequency():
+    # The override to low_freq of the legacy finite depth method should not apply at infinite frequency.
+    # Same result as with the default gf_singularities, which is overridden to high_freq at infinite frequency.
+    mesh = cpt.mesh_sphere().immersed_part()
+    S_ref, K_ref = cpt.Delhommeau(finite_depth_method="legacy").evaluate(mesh, mesh, water_depth=10.0, wavenumber=np.inf)
+    gf = cpt.Delhommeau(finite_depth_method="legacy", gf_singularities="high_freq")
+    S, K = gf.evaluate(mesh, mesh, water_depth=10.0, wavenumber=np.inf)
+    # Tolerance because the Prony decomposition is randomized (the bug gave a difference of 5e-2 on K).
+    np.testing.assert_allclose(S, S_ref, atol=1e-3)
+    np.testing.assert_allclose(K, K_ref, atol=1e-3)

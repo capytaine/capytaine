@@ -22,27 +22,24 @@ module Green_Wave
 #ifdef FINGREEN3D_OPTIONAL_DEPENDENCY
     use fingreen3d_module, only: fingreen3d_routine, dispersion
 #endif
-  use green_rankine, only: integral_of_reflected_rankine, next_node
+  use green_rankine, only: integral_of_reflected_rankine
 
   implicit none
 
   ! Dependencies between the functions of this module:
   ! (from top to bottom: "is called by")
   !
-  !                              (Delhommeau_integrals.f90 or LiangWuNoblesseWaveTerm.f90)
-  !                                                         |
-  !  integral_of_singularity_on_free_surface          wave_part_infinite_depth
-  !                                         \               |
-  !      integral_of_reflected_Rankine      integral_of_wave_part_infinite_depth
-  !                               |         /          |
-  !       integral_of_wave_part_finite_depth           |
-  !                                \                   /
-  !                                integral_of_wave_part   integral_of_wave_part_infinite_frequency
-  !                                         |             /
-  !                                         (matrices.f90)
-  !                                               |
-  !                                         (python code)
-  !
+  !  integral_of_low_freq_singularity_on_free_surface    (Delhommeau_integrals.f90 or LiangWuNoblesseWaveTerm.f90)
+  !       |      integral_of_high_freq_singularity_on_free_surface              |
+  !       |                          |                             wave_part_infinite_depth
+  !       |                          |                                         |
+  !       +-------------- integral_of_wave_part_infinite_depth ----------------+
+  !                          |                       |
+  !        integral_of_wave_parts_finite_depth       |
+  !                          |                       |
+  !                          +---- (matrices.f90) ---+
+  !                                      |
+  !                                (python code)
   !
 
 CONTAINS
@@ -51,7 +48,7 @@ CONTAINS
 
   subroutine integral_of_wave_part_infinite_depth                &
       (x,                                                        &
-      face_center, face_area,                                    &
+      face_center, face_normal, face_area, face_radius,          &
       face_quadrature_points, face_quadrature_weights,           &
       wavenumber,                                                &
       tabulation_nb_integration_points, tabulation_grid_shape,   &
@@ -62,8 +59,8 @@ CONTAINS
       )
 
     real(kind=pre), dimension(3),          intent(in) :: x
-    real(kind=pre), dimension(3),          intent(in) :: face_center
-    real(kind=pre),                        intent(in) :: face_area
+    real(kind=pre), dimension(3),          intent(in) :: face_center, face_normal
+    real(kind=pre),                        intent(in) :: face_area, face_radius
     real(kind=pre), dimension(:),          intent(in) :: face_quadrature_weights
     real(kind=pre), dimension(:, :),       intent(in) :: face_quadrature_points
     real(kind=pre),                        intent(in) :: wavenumber
@@ -79,32 +76,79 @@ CONTAINS
     complex(kind=pre), dimension(3),       intent(out) :: int_nablaG
 
     ! Local variables
-    real(kind=pre)                  :: r, z
     complex(kind=pre)               :: G_at_point
     complex(kind=pre), dimension(3) :: nablaG_at_point
-    integer                         :: nb_quad_points, Q
+    integer                         :: Q
+    logical                         :: x_at_center_of_face_on_free_surface
 
-    r = wavenumber * norm2(x(1:2) - face_center(1:2))
-    z = wavenumber * (x(3) + face_center(3))
+    ! Summary of the cases
+    !
+    !                   | x elsewhere                | x at the center of a face on the free surface
+    ! ------------------+----------------------------+-----------------------------------------------
+    ! k = 0, low_freq   | zero                       | zero
+    ! 0 < k < ∞         | numerical integration      | low_freq: analytical integration
+    !                   |                            | high_freq: not supported (error)
+    ! k = ∞, high_freq  | zero                       | jump of 2/r_1
+    !
+    ! Not supported (error): high_freq at k = 0 and low_freq at k = ∞. Since G_w^- = G_w^+ + 2/r_1, the wave part
+    ! does not vanish then (G_w^- -> 2/r_1 when k -> 0, and G_w^+ -> -2/r_1 when k -> ∞).
+    ! Python sets gf_singularities to low_freq for k = 0, to high_freq for k = ∞, and to low_freq when there are
+    ! faces on the free surface at finite frequency.
+    !
+    ! Points x on a face on the free surface other than its center are not supported: they are treated as
+    ! "x elsewhere", which is inaccurate at finite frequency and misses the jump term at infinite frequency.
+    ! Only the centers are needed to solve the BEM problem (diagonal of the matrices).
 
-    if ((abs(r) < 1e-10) .and. (abs(z) < 1e-10)) then
-      if (gf_singularities == HIGH_FREQ) then
-        print*, "WARNING: support of free surface panels not implemented for the high_freq Green function"
-        ! Delhommeau().evaluate() should not permit this to happen.
+    int_G = czero
+    int_nablaG(:) = czero
+
+    if ((wavenumber == ZERO) .and. (gf_singularities == HIGH_FREQ)) then
+      ! Delhommeau().evaluate() should not permit this to happen.
+      print*, "The high_freq Green function is not supported at zero frequency"
+      error stop
+    else if (is_infinity(wavenumber) .and. (gf_singularities /= HIGH_FREQ)) then
+      ! Delhommeau().evaluate() should not permit this to happen.
+      print*, "Only the high_freq Green function is supported at infinite frequency"
+      error stop
+    endif
+
+    x_at_center_of_face_on_free_surface =                           &
+      (abs(face_center(3)) < real(1e-6, pre))                       & ! face on the free surface,
+      .and. (abs(face_normal(3)) > 1 - real(1e-6, pre))             & ! horizontal,
+      .and. (norm2(x - face_center) < real(1e-6, pre)*face_radius)    ! and x at its center
+
+    if (wavenumber == ZERO) then
+      ! The low_freq wave part vanishes.
+      continue
+
+    else if (is_infinity(wavenumber)) then
+      ! The high_freq wave part vanishes, except for x at the center of a face on the free surface.
+      if (x_at_center_of_face_on_free_surface) then
+        call integral_of_high_freq_singularity_on_free_surface(face_normal, int_G, int_nablaG)
       endif
 
-      ! Interaction of a panel on the free surface with itself
-      call integral_of_singularity_on_free_surface( &
-        face_area, wavenumber, int_G, int_nablaG)
+    else if (x_at_center_of_face_on_free_surface) then
+      select case (gf_singularities)
+      case (LOW_FREQ)
+        call integral_of_low_freq_singularity_on_free_surface( &
+          face_area, wavenumber, int_G, int_nablaG)
+      case (LOW_FREQ_WITH_RANKINE_PART)
+        call integral_of_low_freq_singularity_on_free_surface( &
+          face_area, wavenumber, int_G, int_nablaG)
+        ! Remove the term 2k/r_1, which is integrated with the reflected Rankine term in this case.
+        int_nablaG(3) = wavenumber * int_G
+      case (HIGH_FREQ)
+        ! Delhommeau().evaluate() should not permit this to happen.
+        ! Adding 4 √(π|Γ|) to int_G and the result of integral_of_high_freq_singularity_on_free_surface to
+        ! int_nablaG would give the correct self-influence, but the tabulated high_freq integrals diverge when
+        ! z -> 0 for r > 0, so the interactions between distinct faces on the free surface would be wrong anyway.
+        print*, "Faces on the free surface are not supported by the high_freq Green function at finite frequency"
+        error stop
+      end select
 
     else
-      ! Numerical integration
-      int_G = zero
-      int_nablaG = zero
-
-      nb_quad_points = size(face_quadrature_weights)
-
-      do q = 1, nb_quad_points
+      ! Finite non-zero frequency: numerical integration
+      do q = 1, size(face_quadrature_weights)
         call wave_part_infinite_depth                                &
           (x,                                                        &
           face_quadrature_points(q, :),                              &
@@ -117,7 +161,7 @@ CONTAINS
         int_G = int_G + G_at_point * face_quadrature_weights(q)
         int_nablaG(:) = int_nablaG(:) + nablaG_at_point(:) * face_quadrature_weights(q)
       end do
-    end if
+    endif
 
     if (.not. derivative_with_respect_to_first_variable) then
       int_nablaG(1:2) = -int_nablaG(1:2)
@@ -127,9 +171,11 @@ CONTAINS
 
   ! =====================================================================
 
-  subroutine integral_of_singularity_on_free_surface(face_area, wavenumber, int_G, int_nablaG)
+  subroutine integral_of_low_freq_singularity_on_free_surface &
+    (face_area, wavenumber, int_G, int_nablaG)
   ! Integrating the wave term by approximating the panel by a circle of same area.
   ! The singularities are integrated analytically. The rest is integrated with a 1-point integral.
+  ! For gf_singularities = LOW_FREQ, 0 < k < ∞, and x at the center of the face, which is on the free surface.
 
   ! G_w^+ = - 2 k log(k r) + rest
   ! ∫_Γ G_w^+ dξ ∼ - 2 k ∫_Γ log(k r) dξ + |Γ| rest(0)
@@ -144,7 +190,6 @@ CONTAINS
   ! ∫_Γ 1/r dξ ∼ 2 √( π |Γ| )
   ! TODO: replace the latter with the actual integral since we computed it anyway for the Rankine term.
 
-  ! TODO: only low_freq singularities are implemented here
     real(kind=pre),                        intent(in) :: wavenumber
     real(kind=pre),                        intent(in) :: face_area
 
@@ -161,60 +206,29 @@ CONTAINS
 
   ! =====================================================================
 
-  pure subroutine integral_of_wave_part_infinite_frequency &
-      (x,                                                  &
-      face_nodes, face_center, face_normal, face_radius,   &
-      int_G, int_nablaG)
-  ! Limit of the wave part of the high_freq Green function when the wavenumber goes to infinity.
+  pure subroutine integral_of_high_freq_singularity_on_free_surface(face_normal, int_G, int_nablaG)
+  ! Integral of the term of the high_freq wave part that is singular on the free surface, at infinite frequency,
+  ! for x at the center of a face on the free surface.
+  ! (At finite frequency, the same term would be needed, but free surface faces are not supported with high_freq,
+  ! see integral_of_wave_part_infinite_depth.)
   !
-  ! The wave part itself goes to zero, but not the integral of its derivative over a face on the free surface,
-  ! when x is on this face. Indeed, compared to the low_freq wave part, the high_freq one includes the term 2/r_reflected
+  ! Compared to the low_freq wave part, the high_freq one includes the term 2/r_reflected
   ! (G = 1/r + 1/r_reflected + G_w^+ = 1/r - 1/r_reflected + G_w^-, hence G_w^- = G_w^+ + 2/r_reflected),
   ! which is singular on the free surface and whose derivative jumps by 2 × 4π across the face.
-  ! Its one-sided limit (from the side of the normal of the face) does not depend on the wavenumber and remains at
-  ! infinite frequency. It gives the coefficient 1 on the diagonal of the double layer operators for faces on the
-  ! free surface, as with low_freq, instead of 0 (the jump of -1/r_reflected cancels the one of 1/r):
-  ! the sources on these faces are then decoupled from the rest of the problem and have no influence on the flow
-  ! (indirect method), and the potential on these faces is zero (direct method), as expected.
-  !
-  ! Any x inside the face is detected. The face is assumed convex, with nodes ordered counterclockwise around
-  ! face_normal. Points on an edge of the face are not supported: they are counted inside each face sharing the edge
-  ! (instead of ½ for each with the solid angle), and the Rankine part is NaN there anyway.
-  ! The same term would be needed in integral_of_singularity_on_free_surface if free surface panels were
-  ! supported with high_freq at finite frequency.
+  ! Its one-sided limit (from the side of the normal of the face) does not depend on the wavenumber.
+  ! At infinite frequency, the rest of the wave part goes to zero, but not this term.
+  ! It gives the coefficient 1 on the diagonal of the double layer operators for faces on the free surface,
+  ! as with low_freq, instead of 0 (the jump of -1/r_reflected cancels the one of 1/r).
 
-    real(kind=pre), dimension(3),    intent(in) :: x
-    real(kind=pre), dimension(4, 3), intent(in) :: face_nodes
-    real(kind=pre), dimension(3),    intent(in) :: face_center, face_normal
-    real(kind=pre),                  intent(in) :: face_radius
+    real(kind=pre), dimension(3),    intent(in) :: face_normal
 
     complex(kind=pre),               intent(out) :: int_G
     complex(kind=pre), dimension(3), intent(out) :: int_nablaG
 
-    integer :: L
-    logical :: inside
-    real(kind=pre), dimension(2) :: edge, to_x
-
     int_G = czero
-    int_nablaG(:) = czero
-
-    inside = (abs(face_center(3)) < real(1e-6, pre)) .and. (abs(x(3)) < real(1e-6, pre))
-    if (inside) then
-      ! Point in convex polygon in the horizontal plane. Triangles have a repeated node: the zero-length edge passes.
-      do L = 1, 4
-        edge = face_nodes(next_node(L), 1:2) - face_nodes(L, 1:2)
-        to_x = x(1:2) - face_nodes(L, 1:2)
-        if (face_normal(3)*(edge(1)*to_x(2) - edge(2)*to_x(1)) < -real(1e-6, pre)*face_radius**2) then
-          inside = .false.
-        endif
-      enddo
-    endif
-
-    if (inside) then
-      ! Once multiplied by -1/(4π) and projected on the normal, this gives 1.
-      ! (Same for the derivative with respect to the second variable, since face_normal is vertical.)
-      int_nablaG(:) = -4*pi*face_normal(:)
-    endif
+    ! Once multiplied by -1/(4π) and projected on the normal, this gives 1.
+    ! (Same for the derivative with respect to the second variable, since face_normal is vertical.)
+    int_nablaG(:) = -4*pi*face_normal(:)
   end subroutine
 
   ! =====================================================================
@@ -370,7 +384,7 @@ CONTAINS
 
   subroutine integral_of_wave_parts_finite_depth                 &
       (x,                                                        &
-      face_center, face_area,                                    &
+      face_center, face_normal, face_area, face_radius,          &
       face_quadrature_points, face_quadrature_weights,           &
       wavenumber, depth,                                         &
       tabulation_nb_integration_points, tabulation_grid_shape,   &
@@ -382,8 +396,8 @@ CONTAINS
 
     ! Inputs
     real(kind=pre), dimension(3),             intent(in) :: x
-    real(kind=pre), dimension(3),             intent(in) :: face_center
-    real(kind=pre),                           intent(in) :: face_area
+    real(kind=pre), dimension(3),             intent(in) :: face_center, face_normal
+    real(kind=pre),                           intent(in) :: face_area, face_radius
     real(kind=pre), dimension(:),             intent(in) :: face_quadrature_weights
     real(kind=pre), dimension(:, :),          intent(in) :: face_quadrature_points
     real(kind=pre),                           intent(in) :: wavenumber, depth
@@ -406,6 +420,9 @@ CONTAINS
     real(kind=pre), dimension(3)    :: x_sym, face_center_sym
     real(kind=pre), dimension(size(face_quadrature_points, 1), size(face_quadrature_points, 2)) :: face_quadrature_points_sym
     real(kind=pre)                  :: amh, akh, a
+    real(kind=pre), dimension(3), parameter :: not_actually_needed = transfer(-1_8, ONE)
+    ! NaN (all bits set), for the arguments that are not needed, such that they are clearly wrong if they were used.
+    ! (ieee_value(ONE, ieee_quiet_nan) is not accepted by gfortran in a constant expression.)
     complex(kind=pre)               :: int_G_term
     complex(kind=pre), dimension(3) :: int_nablaG_term
 
@@ -417,10 +434,14 @@ CONTAINS
       face_center, face_quadrature_points, depth, &
       face_center_sym, face_quadrature_points_sym)
 
+    ! The face normal is only used for a point x at the center of a face on the free surface.
+    ! In 1.b, 1.c and 1.d below, x or the face is reflected through the sea bottom, so this never happens.
+    ! A NaN is passed instead of the normal.
+
     ! 1.a First infinite depth problem
     CALL integral_of_wave_part_infinite_depth                    &
       (x,                                                        &
-      face_center, face_area,                                    &
+      face_center, face_normal, face_area, face_radius,          &
       face_quadrature_points, face_quadrature_weights,           &
       wavenumber,                                                &
       tabulation_nb_integration_points, tabulation_grid_shape,   &
@@ -435,7 +456,7 @@ CONTAINS
     ! 1.b Reflect X and compute another value of the Green function
     CALL integral_of_wave_part_infinite_depth                    &
       (x_sym,                                                    &
-      face_center, face_area,                                    &
+      face_center, not_actually_needed, face_area, face_radius,  &
       face_quadrature_points, face_quadrature_weights,           &
       wavenumber,                                                &
       tabulation_nb_integration_points, tabulation_grid_shape,   &
@@ -454,7 +475,7 @@ CONTAINS
     ! 1.c Reflect face and compute another value of the Green function
     CALL integral_of_wave_part_infinite_depth                    &
       (x,                                                        &
-      face_center_sym, face_area,                                &
+      face_center_sym, not_actually_needed, face_area, face_radius, &
       face_quadrature_points_sym, face_quadrature_weights,       &
       wavenumber,                                                &
       tabulation_nb_integration_points, tabulation_grid_shape,   &
@@ -473,7 +494,7 @@ CONTAINS
     ! 1.d Reflect both x and face and compute another value of the Green function
     CALL integral_of_wave_part_infinite_depth                    &
       (x_sym,                                                    &
-      face_center_sym, face_area,                                &
+      face_center_sym, not_actually_needed, face_area, face_radius, &
       face_quadrature_points_sym, face_quadrature_weights,       &
       wavenumber,                                                &
       tabulation_nb_integration_points, tabulation_grid_shape,   &
@@ -486,9 +507,15 @@ CONTAINS
     int_nablaG = int_nablaG + symmetric_of_vector(int_nablaG_term)
 
     ! Some coefficient
-    AMH  = wavenumber*depth
-    AKH  = AMH*TANH(AMH)
-    A    = (AMH+AKH)**2/(4*AMH*(AMH**2-AKH**2+AKH))
+    if (is_infinity(wavenumber)) then
+      A = ONE  ! Limit of the formula below
+    else if (wavenumber == ZERO) then
+      A = ONE  ! The formula below is singular, but the wave terms are zero anyway
+    else
+      AMH  = wavenumber*depth
+      AKH  = AMH*TANH(AMH)
+      A    = (AMH+AKH)**2/(4*AMH*(AMH**2-AKH**2+AKH))
+    endif
 
     int_G = A * int_G
     int_nablaG = A * int_nablaG

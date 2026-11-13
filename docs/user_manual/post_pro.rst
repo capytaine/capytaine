@@ -228,6 +228,17 @@ For the free surface elevation, 2 coordinates :math:`(x, y)` are sufficient.
        res = solver.solve(pb, keep_details=True)
        pressure_over_omega_2 = solver.compute_pressure(points, res)/(pb.omega*pb.omega)
 
+.. warning::
+   The velocity cannot be reliably reconstructed at points lying on a face of the mesh that is on the free surface
+   (typically a face of a lid used for irregular frequencies removal), except at the center of the face (e.g. when
+   passing the lid mesh itself as points).
+   The singular part of the Green function on the free surface is only integrated specifically when the point is at the
+   center of the face. At other points of the face, the velocity is inaccurate at finite frequency and wrong at
+   infinite frequency.
+   Even at the center of the face, the face is approximated by a disk of the same area for this integral.
+   Such points are inside the body, that is outside of the fluid domain, so this is not expected to be a limitation in
+   practice. Points on the free surface outside of the body are not affected.
+
 
 Impedance and RAO
 -----------------
