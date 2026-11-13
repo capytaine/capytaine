@@ -214,7 +214,7 @@ def test_potential_without_free_surface_keeps_the_imaginary_part_of_the_sources(
 @pytest.mark.parametrize("linear_solver", ["lu_decomposition", "lu_decomposition_with_overwrite"])
 def test_matrices_and_linear_solver_with_symmetries(name, linear_solver):
     sym_mesh = helpers.symmetric_meshes_of_single_panel()[name]
-    params = dict(free_surface=0.0, water_depth=np.inf, wavenumber=1.0, diagonal_term_in_double_layer=True)
+    params = dict(free_surface=0.0, water_depth=np.inf, wavenumber=1.0)
     S_ref, K_ref = cpt.DefaultMatrixEngine(green_function=helpers.green_function()).build_matrices(sym_mesh.merged(), sym_mesh.merged(), **params)
 
     engine = cpt.DefaultMatrixEngine(green_function=StrictArrayGreenFunction(), linear_solver=linear_solver)
@@ -251,7 +251,7 @@ def test_solve_with_symmetries(name, linear_solver, method):
 
 def test_float32_precision_with_symmetries():
     sym_mesh = helpers.symmetric_meshes_of_single_panel()["dihedral"]
-    params = dict(free_surface=0.0, water_depth=np.inf, wavenumber=1.0, diagonal_term_in_double_layer=True)
+    params = dict(free_surface=0.0, water_depth=np.inf, wavenumber=1.0)
     _, K_ref = cpt.DefaultMatrixEngine(green_function=helpers.green_function()).build_matrices(sym_mesh.merged(), sym_mesh.merged(), **params)
     engine = cpt.DefaultMatrixEngine(green_function=StrictArrayGreenFunction(floating_point_precision="float32"))
     _, K = engine.build_matrices(sym_mesh, sym_mesh, **params)

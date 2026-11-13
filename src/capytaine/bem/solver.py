@@ -183,7 +183,7 @@ class BEMSolver:
             with self.timer(step="Green function"):
                 S, D = self.engine.build_matrices(
                         problem.body.mesh_including_lid, problem.body.mesh_including_lid,
-                        **gf_params, adjoint_double_layer=False, diagonal_term_in_double_layer=True,
+                        **gf_params, adjoint_double_layer=False,
                         )
             with self.timer(step="Matrix-vector product"):
                 rhs = self._matmul(S, problem.boundary_condition)
@@ -196,7 +196,7 @@ class BEMSolver:
             with self.timer(step="Green function"):
                 S, K = self.engine.build_matrices(
                         problem.body.mesh_including_lid, problem.body.mesh_including_lid,
-                        **gf_params, adjoint_double_layer=True, diagonal_term_in_double_layer=True,
+                        **gf_params, adjoint_double_layer=True,
                         )
             with self.timer(step="Linear solver"):
                 sources = self._solve_linear_system(K, problem.boundary_condition)
@@ -471,8 +471,7 @@ class BEMSolver:
         -------
         complex-valued array of shape (..., *points_shape, 3)
         """
-        points, output_shape = _normalize_points(points, keep_mesh=True)
-        # keep_mesh, because we need the normal vectors associated with each collocation points to compute the fullK matrix
+        points, output_shape = _normalize_points(points)
         batch_shape = tuple(sources.shape[:-1])
         with self.timer(step="Post-processing velocity"):
             gradG = self.engine.build_fullK_matrix(points, mesh, **gf_params)

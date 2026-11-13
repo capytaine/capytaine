@@ -214,13 +214,6 @@ in particular, the following can be used to compute the value on the mesh used f
 
 The returned values is an array of shape matching the shape of the input points.
 
-.. warning::
-   There is a single case in which passing a mesh is not equivalent to a list of point: if you want the compute the velocity on the hull of the floating body. In this case, you should give the same mesh object that has been used for the resolution::
-
-        solver.compute_velocity(result.body.mesh, result)
-
-   Other Python objects might return incorrect values or errors.
-
 For potential, pressure and velocity, 3 coordinates :math:`(x, y, z)` are expected for each points.
 For the free surface elevation, 2 coordinates :math:`(x, y)` are sufficient.
 
@@ -234,6 +227,17 @@ For the free surface elevation, 2 coordinates :math:`(x, y)` are sufficient.
        pb = cpt.RadiationProblem(body=body, omega=0, radiating_dof="Heave")
        res = solver.solve(pb, keep_details=True)
        pressure_over_omega_2 = solver.compute_pressure(points, res)/(pb.omega*pb.omega)
+
+.. warning::
+   The velocity cannot be reliably reconstructed at points lying on a face of the mesh that is on the free surface
+   (typically a face of a lid used for irregular frequencies removal), except at the center of the face (e.g. when
+   passing the lid mesh itself as points).
+   The singular part of the Green function on the free surface is only integrated specifically when the point is at the
+   center of the face. At other points of the face, the velocity is inaccurate at finite frequency and wrong at
+   infinite frequency.
+   Even at the center of the face, the face is approximated by a disk of the same area for this integral.
+   Such points are inside the body, that is outside of the fluid domain, so this is not expected to be a limitation in
+   practice. Points on the free surface outside of the body are not affected.
 
 
 Impedance and RAO

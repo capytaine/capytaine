@@ -61,8 +61,6 @@ Bug fixes
 
 * Fix computation of hydrostatic stiffness on multibodies treated as generalized dofs as in previous version. (:pull:`936`)
 
-* Fix double layer term when computing the value at field points without a free surface.
-
 * The GDF reader of :func:`~capytaine.meshes.io.load_mesh` now follows the free format of WAMIT: the coordinates of a panel can be spread over any number of lines, extra tokens after them (e.g. a panel number) and lines after the ``NPAN`` panels (e.g. ``NPAND``) are ignored, and commas and ``D`` exponents are accepted.
   A warning is emitted for the dipole panels of the WAMIT Version 6 format, which are not supported, and an error is raised for walls (negative ``ISX`` or ``ISY``) and higher-order geometries (``IGDEF`` other than 0).
 
@@ -73,6 +71,18 @@ Bug fixes
 * Fix :meth:`~capytaine.meshes.meshes.Mesh.extract_faces` on a mesh with faces metadata, that was failing. It now also accepts a slice or a boolean mask to select the faces.
 
 * Fix the build from source on Linux aarch64, where GCC has no libquadmath: only link it on Windows.
+
+* The self-influence term of the double layer operators is now added wherever a collocation point lies on a face of the source mesh, with the normal of that face, instead of on the diagonal of the matrix, assuming that the first faces of both meshes are the same.
+  In particular, velocities on the hull computed at an array of points or on a sub-mesh are now the limit on the fluid side, as they already were when passing the mesh itself.
+  The term was also missing when computing the value at field points without a free surface. (:pull:`951`)
+  Faces on the sea bottom (with the default finite depth Green function) now get the coefficient 1, like faces on the free surface, instead of 1/2.
+  A lid slightly below the free surface (closer than ``5e-5`` times the radius of its faces) now also gets the coefficient 1 instead of 1/2, such that the coefficient varies continuously with the depth of the lid.
+  Faces on the free surface are not supported by the legacy finite depth method (``finite_depth_method="legacy"``): they now get the coefficient 1/2 instead of 1.
+  Non-planar quadrilateral faces (which are not officially supported) now get a coefficient slightly different from 1/2, consistent with the limit from the side of the normal.
+  For faces on the free surface (such as lids), the self-influence of the wave part is only computed at the center of the face: the velocity cannot be reconstructed at other points of these faces (see :doc:`user_manual/post_pro`).
+
+* At infinite frequency, ``Delhommeau(finite_depth_method="legacy", gf_singularities="high_freq")`` now uses the high_freq variant of the Green function, as the other settings do, instead of the low_freq one, which was giving wrong results at this frequency.
+  Unsupported combinations of frequency and ``gf_singularities`` now raise a ``NotImplementedError`` instead of returning wrong results.
 
 Internals
 ~~~~~~~~~
@@ -93,6 +103,13 @@ Internals
   Meshes with symmetries are supported: the block matrices of :mod:`capytaine.tools.block_circulant_matrices` are now implemented with the array API standard instead of NumPy. (:pull:`958`)
   They can be built from an array of shape ``(nb_blocks, n, m)`` or a list of blocks.
   The blocks of a :class:`~capytaine.tools.block_circulant_matrices.BlockCirculantMatrix` have to be arrays and not other block matrices anymore (use :class:`~capytaine.tools.block_circulant_matrices.NestedBlockCirculantMatrix` instead).
+
+* The self-influence term of the double layer operators is computed in the Fortran core as the one-sided limit of the integral of the Rankine term (and of its reflections) over the faces, wherever a collocation point lies on a face.
+  The Fortran subroutine ``add_diagonal_term`` has been removed.
+
+* **Breaking** The ``diagonal_term_in_double_layer`` parameter of the ``evaluate`` methods of the Green functions (and of the matrix engine) has been removed: the self-influence term is always included.
+  Custom Green functions should include the self-influence term in their double layer operators, since the engine does not ask for it anymore.
+  For a mesh evaluated on itself with planar faces, the principal value can be recovered by subtracting 1/2 from the diagonal (1 for faces on the free surface or on the sea bottom).
 
 * The string representation (``__str__``, ``__repr__``) and the hash of Green functions are now implemented once in :class:`~capytaine.green_functions.abstract_green_function.AbstractGreenFunction`, driven by ``exportable_settings`` and a ``_default_parameters`` class attribute.
 

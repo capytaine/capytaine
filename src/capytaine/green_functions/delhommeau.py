@@ -27,6 +27,21 @@ from capytaine.green_functions.abstract_green_function import AbstractGreenFunct
 
 LOG = logging.getLogger(__name__)
 
+
+def _check_supported_gf_singularities(gf_singularities, wavenumber, mesh2):
+    """Raise the same errors as the Fortran core (which stops the whole process with `error stop`),
+    see `integral_of_wave_part_infinite_depth` in Green_wave.f90.
+    The overrides in `Delhommeau.evaluate` should already avoid these cases."""
+    if wavenumber == 0.0 and gf_singularities == "high_freq":
+        raise NotImplementedError("The high_freq Green function is not supported at zero frequency.")
+    if wavenumber == np.inf and gf_singularities != "high_freq":
+        raise NotImplementedError("Only the high_freq Green function is supported at infinite frequency.")
+    if (0.0 < wavenumber < np.inf and gf_singularities == "high_freq"
+            and np.any(abs(mesh2.faces_centers[:, 2]) < 1e-6)):
+        raise NotImplementedError(
+            "Faces on the free surface are not supported by the high_freq Green function at finite frequency."
+        )
+
 class Delhommeau(AbstractGreenFunction):
     """The Green function as implemented in Aquadyn and Nemoh.
 
@@ -310,10 +325,15 @@ class Delhommeau(AbstractGreenFunction):
             self,
             mesh1, mesh2, *,
             adjoint_double_layer=True, early_dot_product=True,
-            diagonal_term_in_double_layer=True,
             ):
         r"""Construct the matrices between mesh1 (that can also be a list of points)
         and mesh2 for a Rankine kernel.
+
+        Where a point of mesh1 lies on a face of mesh2 (e.g. on the diagonal
+        when mesh1 is mesh2), the double layer operators include the
+        self-influence term: K (and the full gradient) is the limit from the
+        side of the normal of the face (usually the fluid), which adds n/2 with
+        the normal of that face, and D includes +1/2.
 
         Parameters
         ----------
@@ -329,11 +349,6 @@ class Delhommeau(AbstractGreenFunction):
         early_dot_product: boolean, optional
             if False, return K as a (3, n, m) array storing ∫∇G
             if True, return K as a (n, m) array storing ∫∇G·n
-        diagonal_term_in_double_layer: boolean, optional
-            if True, add the I/2 term in the double layer operator
-            It is assumed that mesh1 == mesh2, or at least that
-            the `n := min(mesh1.nb_faces, mesh2.nb_faces)` first faces
-            of each mesh are identical.
 
         Returns
         -------
@@ -356,12 +371,6 @@ class Delhommeau(AbstractGreenFunction):
                 adjoint_double_layer,
                 S, K)
 
-        if diagonal_term_in_double_layer:
-            n = min(K.shape[1], K.shape[2])
-            self.fortran_core.matrices.add_diagonal_term(
-                    mesh2.faces_centers[:n, :], early_dot_product_normals, np.inf, K,
-                    )
-
         S, K = np.real(S), np.real(K)
 
         if np.any(np.isnan(S)) or np.any(np.isnan(K)):
@@ -379,9 +388,17 @@ class Delhommeau(AbstractGreenFunction):
             self, mesh1, mesh2, *,
             free_surface=0.0, water_depth=np.inf, wavenumber=1.0,
             adjoint_double_layer=True, early_dot_product=True,
-            diagonal_term_in_double_layer=True,
             ):
         r"""The main method of the class, called by the engine to assemble the influence matrices.
+
+        Where a point of mesh1 lies on a face of mesh2 (e.g. on the diagonal
+        when mesh1 is mesh2), the double layer operators include the
+        self-influence term: K (and the full gradient) is the limit from the
+        side of the normal of the face (usually the fluid), which adds n/2 with
+        the normal of that face, and D includes +1/2. Faces on the free surface
+        and on the sea bottom get 1 instead of 1/2, from the image of the
+        Rankine term (except faces on the free surface with
+        ``finite_depth_method="legacy"``, which are not supported and get 1/2).
 
         Parameters
         ----------
@@ -401,11 +418,6 @@ class Delhommeau(AbstractGreenFunction):
         early_dot_product: boolean, optional
             if False, return K as a (3, n, m) array storing ∫∇G
             if True, return K as a (n, m) array storing ∫∇G·n
-        diagonal_term_in_double_layer: boolean, optional
-            if True, add the I/2 term in the double layer operator.
-            It is assumed that mesh1 == mesh2, or at least that
-            the `n := min(mesh1.nb_faces, mesh2.nb_faces)` first faces
-            of each mesh are identical.
 
         Returns
         -------
@@ -424,7 +436,6 @@ class Delhommeau(AbstractGreenFunction):
                 mesh1, mesh2,
                 adjoint_double_layer=adjoint_double_layer,
                 early_dot_product=early_dot_product,
-                diagonal_term_in_double_layer=diagonal_term_in_double_layer,
             )
 
         # Main case:
@@ -438,20 +449,23 @@ class Delhommeau(AbstractGreenFunction):
         wavenumber = float(wavenumber)
 
         # Overrides gf_singularities setting in some specific cases, else use the class one.
-        if water_depth < np.inf and self.finite_depth_method == 'legacy' and not self.gf_singularities == 'low_freq':
+        # The limit frequencies come first: they are only supported by one variant of the Fortran core.
+        if wavenumber == 0.0:
+            gf_singularities = "low_freq"
+            if self.gf_singularities != gf_singularities:
+                LOG.debug(
+                    f"Overriding gf_singularities='{self.gf_singularities}' because of wavenumber==0.0"
+                )
+        elif wavenumber == np.inf:
+            gf_singularities = "high_freq"
+            if self.gf_singularities != gf_singularities:
+                LOG.debug(
+                    f"Overriding gf_singularities='{self.gf_singularities}' because of wavenumber==np.inf"
+                )
+        elif water_depth < np.inf and self.finite_depth_method == 'legacy' and not self.gf_singularities == 'low_freq':
             gf_singularities = "low_freq"  # Reproduce legacy method behavior
             LOG.debug(
                 f"Overriding gf_singularities='{self.gf_singularities}' because of finite_depth_method=='legacy'"
-            )
-        elif wavenumber == 0.0 and not self.gf_singularities == 'low_freq':
-            gf_singularities = "low_freq"
-            LOG.debug(
-                f"Overriding gf_singularities='{self.gf_singularities}' because of wavenumber==0.0"
-            )
-        elif wavenumber == np.inf and not self.gf_singularities == 'high_freq':
-            gf_singularities = "high_freq"
-            LOG.debug(
-                f"Overriding gf_singularities='{self.gf_singularities}' because of wavenumber==np.inf"
             )
         elif np.any(abs(mesh2.faces_centers[:, 2]) < 1e-6) and not self.gf_singularities == 'low_freq':
             gf_singularities = "low_freq"
@@ -461,6 +475,7 @@ class Delhommeau(AbstractGreenFunction):
             )
         else:
             gf_singularities = self.gf_singularities
+        _check_supported_gf_singularities(gf_singularities, wavenumber, mesh2)
         gf_singularities_index = self.gf_singularities_fortran_enum[gf_singularities]
 
         if water_depth == np.inf:
@@ -481,12 +496,6 @@ class Delhommeau(AbstractGreenFunction):
             gf_singularities_index, adjoint_double_layer,
             S, K
         )
-
-        if diagonal_term_in_double_layer:
-            n = min(K.shape[1], K.shape[2])
-            self.fortran_core.matrices.add_diagonal_term(
-                    mesh2.faces_centers[:n, :], early_dot_product_normals, free_surface, K,
-                    )
 
         if early_dot_product:
             K = K.reshape((collocation_points.shape[0], mesh2.nb_faces))
