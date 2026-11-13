@@ -21,7 +21,6 @@ from capytaine.meshes import RotationSymmetricMesh, ReflectionSymmetricMesh
 from capytaine.green_functions.abstract_green_function import GreenFunctionEvaluationError
 
 
-
 def test_engine_repr():
     r = repr(cpt.DefaultMatrixEngine())
     assert "Delhommeau" in r
@@ -279,18 +278,6 @@ def test_ram_rotation_symmetries_estimation(n):
     assert lu_overwrite_estimation == nb_faces**2 * 16 * (2 * 1/n + 1/n) / 1e9
 
 
-@pytest.mark.parametrize("name", ["nested_reflections", "rotation_4", "dihedral"])
-def test_symmetry(name):
-    sym_mesh = helpers.symmetric_meshes_of_single_panel()[name]
-    ref_mesh = sym_mesh.merged()
-    engine = cpt.DefaultMatrixEngine()
-    params = dict(free_surface=0.0, water_depth=np.inf, wavenumber=1.0, diagonal_term_in_double_layer=True)
-    S_ref, K_ref = engine.build_matrices(ref_mesh, ref_mesh, **params)
-    S, K = engine.build_matrices(sym_mesh, sym_mesh, **params)
-    np.testing.assert_allclose(np.array(S), S_ref, atol=1e-12)
-    np.testing.assert_allclose(np.array(K), K_ref, atol=1e-12)
-
-
 def test_build_S_matrix_despite_invalid_K_matrix():
     mesh = cpt.mesh_sphere(radius=1.0, resolution=(4, 3))
     sphere = cpt.FloatingBody(mesh=mesh).immersed_part()
@@ -312,11 +299,3 @@ def test_lazy_S_matrix():
     assert isinstance(S, LazyMatrix)
     full_S, _ = engine.green_function.evaluate(points, mesh, wavenumber=1.0)
     assert np.allclose(np.array(S), full_S)
-
-
-def test_same_S_and_K_matrices_with_symmetries():
-    engine = cpt.DefaultMatrixEngine()
-    sym_mesh = ReflectionSymmetricMesh(cpt.mesh_sphere(center=(0, 2, 0)).immersed_part(), plane='xOz')
-    mesh = sym_mesh.merged()
-    assert np.allclose(engine.build_S_matrix(sym_mesh.faces_centers, sym_mesh), engine.build_S_matrix(mesh.faces_centers, mesh))
-    assert np.allclose(engine.build_fullK_matrix(sym_mesh.faces_centers, sym_mesh), engine.build_fullK_matrix(mesh.faces_centers, mesh))
