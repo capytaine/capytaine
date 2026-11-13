@@ -33,7 +33,7 @@ Capytaine: a Python-based linear potential flow BEM solver
 
       .. raw:: html
 
-          <video src="_static/front_page_animation.webm" loop autoplay muted></video>
+          <video src="_static/front_page_animation.mp4" loop autoplay muted playsinline></video>
 
 .. container:: philosophy-grid
 
