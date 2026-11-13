@@ -6,6 +6,7 @@ from typing import Any
 import numpy as np
 from numpy.typing import NDArray
 import scipy.linalg as sl
+import scipy.sparse.linalg as ssl
 
 from capytaine.tools.array_backend import  array_namespace, device
 
@@ -80,3 +81,44 @@ class LUDecomposedMatrix(AbstractLUDecomposedMatrix):
 @lu_decompose.register(np.ndarray)
 def _lu_decompose_ndarray(A, *, overwrite_a: bool = False):
     return LUDecomposedMatrix(A, overwrite_a=overwrite_a)
+
+#################################### GMRES #####################################
+
+@singledispatch
+def solve_gmres(A, b):
+    """Solve `A x = b` with GMRES, where `b` is a vector.
+
+    This is a :func:`functools.singledispatch` function: the implementation is chosen with the type of `A`.
+    GMRES for a new type of matrices (e.g. arrays of another array library) can be supported by
+    registering an implementation with ``@solve_gmres.register(MatrixType)``.
+    """
+    raise NotImplementedError(
+        f"The 'gmres' linear solver has not been implemented for matrix of {type(A)}"
+    )
+
+
+class _Counter:
+    def __init__(self):
+        self.nb_iter = 0
+
+    def __call__(self, *args, **kwargs):
+        self.nb_iter += 1
+
+
+@solve_gmres.register(np.ndarray)
+def _solve_gmres_scipy(A, b):
+    LOG.debug(f"Solve with GMRES for {A}.")
+
+    if LOG.isEnabledFor(logging.INFO):
+        counter = _Counter()
+        x, info = ssl.gmres(A, b, atol=1e-6, callback=counter, callback_type="legacy")
+        LOG.info(f"End of GMRES after {counter.nb_iter} iterations.")
+
+    else:
+        x, info = ssl.gmres(A, b, atol=1e-6)
+
+    if info > 0:
+        raise RuntimeError(f"No convergence of the GMRES after {info} iterations.\n"
+                            "This can be due to overlapping panels or irregular frequencies.")
+
+    return x
