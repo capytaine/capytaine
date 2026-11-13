@@ -48,6 +48,9 @@ Minor changes
 
 * Build wheels for Linux on aarch64 (ARM64), such as AWS Graviton instances or Linux containers on Apple Silicon Macs.
 
+* :meth:`~capytaine.ui.vedo_animations.Animation.add_body` and :meth:`~capytaine.ui.vedo_animations.Animation.add_free_surface` accept new keyword arguments ``color``, ``edge_color`` and ``cmap`` to customize the colors of the animation.
+  The ``axes`` parameter of ``vedo.Plotter`` can now be passed to :meth:`~capytaine.ui.vedo_animations.Animation.run` and :meth:`~capytaine.ui.vedo_animations.Animation.save` (e.g. ``axes=0`` to hide the axes).
+
 Bug fixes
 ~~~~~~~~~
 
@@ -58,6 +61,8 @@ Bug fixes
 * Fix computation of hydrostatic stiffness on multibodies treated as generalized dofs as in previous version. (:pull:`936`)
 
 * Fix double layer term when computing the value at field points without a free surface.
+
+* Fix a stutter in the looping animations of :class:`~capytaine.ui.vedo_animations.Animation`: the last frame was identical to the first one.
 
 * The GDF reader of :func:`~capytaine.meshes.io.load_mesh` now follows the free format of WAMIT: the coordinates of a panel can be spread over any number of lines, extra tokens after them (e.g. a panel number) and lines after the ``NPAN`` panels (e.g. ``NPAND``) are ignored, and commas and ``D`` exponents are accepted.
   A warning is emitted for the dipole panels of the WAMIT Version 6 format, which are not supported, and an error is raised for walls (negative ``ISX`` or ``ISY``) and higher-order geometries (``IGDEF`` other than 0).

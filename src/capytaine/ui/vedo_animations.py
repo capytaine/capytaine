@@ -36,7 +36,7 @@ class AnimationComponent:
     vedo_mesh: "vedo.Mesh"  # The mesh to be animated
     vertices_motion: Optional[np.ndarray] = None  # Complex array of shape (n_vertices, 3) representing the motion of each vertex as a function of time
     vertices_colors: Optional[np.ndarray] = None  # Complex array of shape (n_vertices,) representing the color of each vertex as a function of time
-    cmap: Optional[str] = None
+    cmap: Optional[str] = None  # Name of a colormap, a matplotlib colormap or a list of colors, as accepted by vedo.Mesh.cmap
     vmin: Optional[float] = None
     vmax: Optional[float] = None
 
@@ -51,7 +51,29 @@ class Animation:
         self.components = []
 
 
-    def add_body(self, body, vertices_pressure=None, vertices_motion=None):
+    def _time_steps(self):
+        # The end of the loop is excluded, since it would be the same frame as the first one.
+        return np.linspace(0.0, self.loop_duration, int(self.loop_duration * self.fps), endpoint=False)
+
+    def add_body(self, body, vertices_pressure=None, vertices_motion=None, *, color=None, edge_color=None, cmap="RdBu_r"):
+        """Add a body to the animation.
+
+        Parameters
+        ----------
+        body: FloatingBody
+            The body to be displayed
+        vertices_pressure: array of complex of shape (n_vertices,), optional
+            Complex amplitude of a scalar field displayed with a colormap on the body.
+        vertices_motion: array of complex of shape (n_vertices, 3), optional
+            Complex amplitude of the motion of each vertex of the mesh.
+        color: optional
+            Uniform color of the body (any color accepted by vedo, e.g. ``"#21355d"``).
+            Ignored if ``vertices_pressure`` is given.
+        edge_color: optional
+            If given, the edges of the faces of the mesh are drawn with this color.
+        cmap: optional
+            Colormap used for ``vertices_pressure``: name of a colormap, a matplotlib colormap object or a list of colors.
+        """
         if vertices_pressure is not None:
             pressure_amplitude = np.abs(vertices_pressure).max()
             cmap_bounds = {"vmin": -pressure_amplitude, "vmax": pressure_amplitude}
@@ -60,15 +82,32 @@ class Animation:
         self.components.append(
                 AnimationComponent(
                     mean_mesh=body.mesh,
-                    vedo_mesh=body.mesh.export("vedo"),
+                    vedo_mesh=self._vedo_mesh(body.mesh, color=color, edge_color=edge_color),
                     vertices_colors=vertices_pressure,
                     vertices_motion=vertices_motion,
-                    cmap="RdBu_r",
+                    cmap=cmap,
                     **cmap_bounds
                     )
                 )
 
-    def add_free_surface(self, free_surface_mesh, vertices_elevation):
+    def add_free_surface(self, free_surface_mesh, vertices_elevation, *, color=None, edge_color=None, cmap="Blues_r"):
+        """Add a free surface to the animation.
+
+        Parameters
+        ----------
+        free_surface_mesh: Mesh
+            The mesh of the free surface
+        vertices_elevation: array of complex of shape (n_vertices,) or None
+            Complex amplitude of the free surface elevation at each vertex.
+            It is used both for the vertical motion and for the colors.
+        color: optional
+            Uniform color of the free surface (any color accepted by vedo).
+            Ignored if ``vertices_elevation`` is given.
+        edge_color: optional
+            If given, the edges of the faces of the mesh are drawn with this color.
+        cmap: optional
+            Colormap used for the elevation: name of a colormap, a matplotlib colormap object or a list of colors.
+        """
         if vertices_elevation is not None:
             elevation_amplitude = np.abs(vertices_elevation).max()
             cmap_bounds = {"vmin": -elevation_amplitude, "vmax": elevation_amplitude}
@@ -84,13 +123,22 @@ class Animation:
         self.components.append(
                 AnimationComponent(
                     mean_mesh=free_surface_mesh,
-                    vedo_mesh=free_surface_mesh.export("vedo"),
+                    vedo_mesh=self._vedo_mesh(free_surface_mesh, color=color, edge_color=edge_color),
                     vertices_motion=elevation_as_motion,
                     vertices_colors=vertices_elevation,
-                    cmap="Blues_r",
+                    cmap=cmap,
                     **cmap_bounds
                     )
                 )
+
+    @staticmethod
+    def _vedo_mesh(mesh, *, color=None, edge_color=None):
+        vedo_mesh = mesh.export("vedo")
+        if color is not None:
+            vedo_mesh.color(color)
+        if edge_color is not None:
+            vedo_mesh.linecolor(edge_color).linewidth(1)
+        return vedo_mesh
 
     def update(self, t):
         for component in self.components:
@@ -110,13 +158,14 @@ class Animation:
         for k, v in _default_camera.items():
             camera.setdefault(k, v)
         kwargs.setdefault("size", resolution)
-        plt = self.vedo.Plotter(axes=1, interactive=False, **kwargs)
+        kwargs.setdefault("axes", 1)
+        plt = self.vedo.Plotter(interactive=False, **kwargs)
         plt.show(
             *[comp.vedo_mesh for comp in self.components],
             *lights,
             camera=camera
         )
-        t_range = np.linspace(0.0, self.loop_duration, int(self.loop_duration * self.fps))
+        t_range = self._time_steps()
         for t in t_range:
             self.update(t)
             plt.render()
@@ -131,13 +180,14 @@ class Animation:
             camera.setdefault(k, v)
         kwargs.setdefault("size", resolution)
         video = self.vedo.Video(filename, duration=self.loop_duration, fps=self.fps)
-        plt = self.vedo.Plotter(axes=1, interactive=False, **kwargs)
+        kwargs.setdefault("axes", 1)
+        plt = self.vedo.Plotter(interactive=False, **kwargs)
         plt.show(
             *[comp.vedo_mesh for comp in self.components],
             *lights,
             camera=camera
         )
-        t_range = np.linspace(0.0, self.loop_duration, int(self.loop_duration * self.fps))
+        t_range = self._time_steps()
         for t in t_range:
             self.update(t)
             video.add_frame()
