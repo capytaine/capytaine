@@ -68,7 +68,6 @@ In the repository of the website https://github.com/capytaine/capytaine.github.i
     mv master v2.1
     rm stable
     ln -s v2.1 stable
-    cp v2.0/_static/front_page_animation.webm v2.1/_static/
 
 In the new version documentation (`v2.1` in this example), remove the banner on top of the pages ::
 
