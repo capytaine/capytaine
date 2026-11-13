@@ -232,24 +232,11 @@ def test_matrices_and_linear_solver_with_symmetries(name, linear_solver):
     np.testing.assert_allclose(np.asarray(S @ xps.asarray(b)), S_ref @ b, atol=1e-10)
 
 
-def symmetric_sphere_bodies():
-    from capytaine.meshes import ReflectionSymmetricMesh, RotationSymmetricMesh
-    parallelepiped = cpt.mesh_parallelepiped(resolution=(4, 4, 4), center=(0, 0, -2))
-    half = parallelepiped.clipped(origin=(0, 0, 0), normal=(1, 0, 0))
-    quarter = half.clipped(origin=(0, 0, 0), normal=(0, 1, 0))
-    sphere_wedge = cpt.mesh_sphere(radius=1, resolution=(6, 6), center=(0, 0, -2)).extract_wedge(n=3)
-    return {
-        "reflection": ReflectionSymmetricMesh(half=half, plane="yOz"),
-        "nested_reflections": ReflectionSymmetricMesh(ReflectionSymmetricMesh(half=quarter, plane="xOz"), plane="yOz"),
-        "rotation": RotationSymmetricMesh(wedge=sphere_wedge, n=3),
-    }
-
-
-@pytest.mark.parametrize("name", ["reflection", "nested_reflections", "rotation"])
+@pytest.mark.parametrize("name", helpers.symmetric_meshes().keys())
 @pytest.mark.parametrize("linear_solver", ["lu_decomposition", "lu_decomposition_with_overwrite"])
 @pytest.mark.parametrize("method", ["direct", "indirect"])
 def test_solve_with_symmetries(name, linear_solver, method):
-    sym_mesh = symmetric_sphere_bodies()[name]
+    sym_mesh = helpers.symmetric_meshes()[name]
     dofs = cpt.rigid_body_dofs(rotation_center=(0, 0, -2))
     body = cpt.FloatingBody(mesh=sym_mesh, dofs=dofs)
     ref_body = cpt.FloatingBody(mesh=sym_mesh.merged(), dofs=dofs)

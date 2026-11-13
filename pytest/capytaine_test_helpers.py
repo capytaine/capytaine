@@ -98,6 +98,23 @@ def single_panel():
 
 
 @lru_cache
+def symmetric_meshes():
+    """Small meshes (a few dozen faces) of simple bodies, with each kind of symmetry supported by the engine.
+    Larger than `symmetric_meshes_of_single_panel()`, for tests that solve actual problems."""
+    parallelepiped = cpt.mesh_parallelepiped(resolution=(4, 4, 4), center=(0, 0, -2))
+    half = parallelepiped.clipped(origin=(0, 0, 0), normal=(1, 0, 0))
+    quarter = half.clipped(origin=(0, 0, 0), normal=(0, 1, 0))
+    sphere = cpt.mesh_sphere(radius=1, resolution=(6, 12), center=(0, 0, -2))
+    return {
+        "reflection": ReflectionSymmetricMesh(half=half, plane="yOz"),
+        "nested_reflections": ReflectionSymmetricMesh(ReflectionSymmetricMesh(half=quarter, plane="xOz"), plane="yOz"),
+        "rotation": RotationSymmetricMesh(wedge=sphere.extract_wedge(n=3), n=3),
+        # The sector of 60 degrees above the plane xOz, mirrored and rotated three times.
+        "dihedral": RotationSymmetricMesh(wedge=ReflectionSymmetricMesh(half=sphere.extract_wedge(n=6), plane="xOz"), n=3),
+    }
+
+
+@lru_cache
 def symmetric_meshes_of_single_panel():
     return {
         "reflection": ReflectionSymmetricMesh(single_panel(), plane="xOz"),

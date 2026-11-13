@@ -13,15 +13,14 @@
 # limitations under the License.
 """Implementation of block circulant matrices to be used for optimizing resolution with symmetries."""
 
-import cmath
 import logging
 import numpy as np
 from functools import cached_property
 from typing import Any, List, Union, Sequence
 
-from capytaine.bem.linear_solvers import lu_decompose, AbstractLUDecomposedMatrix
+from capytaine.bem.linear_solvers import lu_decompose, AbstractLUDecomposedMatrix, solve_gmres
 from capytaine.tools.array_backend import (
-    IterableTensor, array_namespace, device, ending_dimensions_at_the_beginning, is_array,
+    IterableTensor, array_namespace, as_complex, device, ending_dimensions_at_the_beginning, is_array,
     leading_dimensions_at_the_end, split, to_numpy,
 )
 
@@ -30,6 +29,33 @@ LOG = logging.getLogger(__name__)
 
 def circular_permutation(l: List, i: int) -> List:
     return l[-i:] + l[:-i]
+
+
+def _block_fft(x, fourier_shape):
+    """FFT of `x` along its first axis, seen as made of blocks arranged in an array of shape `fourier_shape`.
+
+    For `fourier_shape = (n,)`, this is the FFT across the `n` blocks of `x`.
+    For `fourier_shape = (2, 2)`, this is the 2D FFT (here a Walsh-Hadamard transform) of the 2x2 nested blocks.
+    """
+    xp = array_namespace(x)
+    axes = tuple(range(len(fourier_shape)))
+    # The FFT of the array API standard only accepts complex arrays.
+    return xp.reshape(xp.fft.fftn(xp.reshape(as_complex(x), (*fourier_shape, -1)), axes=axes), x.shape)
+
+
+def _block_ifft(x, fourier_shape):
+    """Inverse of `_block_fft`."""
+    xp = array_namespace(x)
+    axes = tuple(range(len(fourier_shape)))
+    return xp.reshape(xp.fft.ifftn(xp.reshape(as_complex(x), (*fourier_shape, -1)), axes=axes), x.shape)
+
+
+def _solve_in_fourier_space(solve_block_diagonal, b, fourier_shape):
+    """Solve a block circulant system, given a function solving the corresponding block diagonal system.
+
+    `fourier_shape` should be consistent with the `block_diagonalize` method of the matrix."""
+    b_hat = _block_fft(b, fourier_shape)
+    return _block_ifft(solve_block_diagonal(b_hat), fourier_shape)
 
 
 class _BlockMatrixBackendMixin:
@@ -131,38 +157,30 @@ class BlockCirculantMatrix(_BlockMatrixBackendMixin):
         return self.__matmul__(other)
 
     def block_diagonalize(self) -> "BlockDiagonalMatrix":
-        if self.ndim == 2 and self.nb_blocks == 2:
+        """Block diagonal matrix whose blocks are the FFT of the blocks of this matrix.
+
+        For instance, with blocks ``[a, b, c]`` and ``w = exp(-2iπ/3)``, the diagonal blocks are
+        ``[a + b + c, a + w b + w² c, a + w² b + w c]``.
+        """
+        if self.ndim != 2:
+            raise NotImplementedError()
+        if self.nb_blocks == 2:
+            # Special case, faster than the FFT, and keeping real blocks real.
             a, b = self.blocks
             return BlockDiagonalMatrix([a + b, a - b])
-        elif self.ndim == 2 and self.nb_blocks == 3:
-            a, b, c = self.blocks
-            w = cmath.exp(-2j*cmath.pi/3)
-            return BlockDiagonalMatrix([
-                a + b + c,
-                a + w * b + w.conjugate() * c,
-                a + w.conjugate() * b + w * c,
-            ])
-        elif self.ndim == 2 and self.nb_blocks == 4:
-            a, b, c, d = self.blocks
-            return BlockDiagonalMatrix([
-                a + b + c + d,
-                a - 1j*b - c + 1j*d,
-                a - b + c - d,
-                a + 1j*b - c - 1j*d,
-            ])
-        elif self.ndim == 2:
-            xp = self._array_backend
-            return BlockDiagonalMatrix(xp.fft.fft(self.blocks.as_array(xp), axis=0))
         else:
-            raise NotImplementedError()
+            xp = self._array_backend
+            return BlockDiagonalMatrix(xp.fft.fft(as_complex(self.blocks.as_array(xp)), axis=0))
+
+    @property
+    def _fourier_shape(self):
+        """Shape of the transform of the right-hand side consistent with `block_diagonalize`."""
+        return (self.nb_blocks,)
 
     def solve(self, b):
         LOG.debug("Called solve on %s of shape %s",
                   self.__class__.__name__, self.shape)
-        xp, n = self._array_backend, self.nb_blocks
-        b_fft = xp.reshape(xp.fft.fft(xp.reshape(b, (n, -1)), axis=0), b.shape)
-        res_fft = self.block_diagonalize().solve(b_fft)
-        res = xp.reshape(xp.fft.ifft(xp.reshape(res_fft, (n, -1)), axis=0), b.shape)
+        res = _solve_in_fourier_space(self.block_diagonalize().solve, b, self._fourier_shape)
         LOG.debug("Done")
         return res
 
@@ -307,6 +325,14 @@ class NestedBlockCirculantMatrix(_BlockMatrixBackendMixin):
             # Drop the inner structure
             return self._block_circulant_matrix.block_diagonalize()
 
+    @property
+    def _fourier_shape(self):
+        """Shape of the transform of the right-hand side consistent with `block_diagonalize`."""
+        if self.nb_blocks == 4:
+            return (2, 2)
+        else:
+            return self._block_circulant_matrix._fourier_shape
+
     def solve(self, b):
         return self._block_circulant_matrix.solve(b)
 
@@ -396,6 +422,7 @@ class LUDecomposedBlockCirculantMatrix(AbstractLUDecomposedMatrix):
         LOG.debug("LU decomp of %s of shape %s",
                   bcm.__class__.__name__, bcm.shape)
         self._lu_decomp = lu_decompose(bcm.block_diagonalize(), overwrite_a=overwrite_a)
+        self._fourier_shape = bcm._fourier_shape
         self.shape = bcm.shape
         self.nb_blocks = bcm.nb_blocks
         self.dtype = bcm.dtype
@@ -408,10 +435,7 @@ class LUDecomposedBlockCirculantMatrix(AbstractLUDecomposedMatrix):
     def solve(self, b):
         LOG.debug("Called solve on %s of shape %s",
                   self.__class__.__name__, self.shape)
-        xp, n = self._array_backend, self.nb_blocks
-        b_fft = xp.reshape(xp.fft.fft(xp.reshape(b, (n, -1)), axis=0), b.shape)
-        res_fft = self._lu_decomp.solve(b_fft)
-        return xp.reshape(xp.fft.ifft(xp.reshape(res_fft, (n, -1)), axis=0), b.shape)
+        return _solve_in_fourier_space(self._lu_decomp.solve, b, self._fourier_shape)
 
 
 @lu_decompose.register(BlockDiagonalMatrix)
@@ -428,3 +452,19 @@ def _lu_decompose_block_circulant(A, *, overwrite_a: bool = False):
 def _lu_decompose_nested_block_circulant(A, *, overwrite_a: bool = False):
     # Drop the nested block circulant structure and LU-decompose the outer block circulant structure only.
     return LUDecomposedBlockCirculantMatrix(A._block_circulant_matrix, overwrite_a=overwrite_a)
+
+
+@solve_gmres.register(BlockDiagonalMatrix)
+def _solve_gmres_block_diagonal(A, b):
+    # Independent GMRES for each block, dispatched on the type of the blocks
+    # (that is on the array library, e.g. scipy for NumPy arrays).
+    xp = A._array_backend
+    rhs = split(b, A.nb_blocks)
+    return xp.concat([solve_gmres(Ai, bi) for (Ai, bi) in zip(A.blocks, rhs)], axis=0)
+
+
+@solve_gmres.register(BlockCirculantMatrix)
+@solve_gmres.register(NestedBlockCirculantMatrix)
+def _solve_gmres_block_circulant(A, b):
+    diag_A = A.block_diagonalize()
+    return _solve_in_fourier_space(lambda b_hat: solve_gmres(diag_A, b_hat), b, A._fourier_shape)
