@@ -58,7 +58,7 @@ def test_same_matrices_with_and_without_symmetries(name):
     sym_mesh = helpers.symmetric_meshes_of_single_panel()[name]
     ref_mesh = sym_mesh.merged()
     engine = cpt.DefaultMatrixEngine()
-    params = dict(free_surface=0.0, water_depth=np.inf, wavenumber=1.0, diagonal_term_in_double_layer=True)
+    params = dict(free_surface=0.0, water_depth=np.inf, wavenumber=1.0)
     S_ref, K_ref = engine.build_matrices(ref_mesh, ref_mesh, **params)
     S, K = engine.build_matrices(sym_mesh, sym_mesh, **params)
     np.testing.assert_allclose(np.array(S), S_ref, atol=1e-12)
@@ -76,7 +76,7 @@ def test_same_post_processing_matrices_with_and_without_symmetries():
 @pytest.mark.parametrize("name", helpers.symmetric_meshes_of_single_panel().keys())
 def test_gmres_linear_solver_with_symmetries(name):
     sym_mesh = helpers.symmetric_meshes_of_single_panel()[name]
-    params = dict(free_surface=0.0, water_depth=np.inf, wavenumber=1.0, diagonal_term_in_double_layer=True)
+    params = dict(free_surface=0.0, water_depth=np.inf, wavenumber=1.0)
     engine = cpt.DefaultMatrixEngine(green_function=helpers.green_function(), linear_solver="gmres")
     _, K = engine.build_matrices(sym_mesh, sym_mesh, **params)
     K_ref = np.array(K)
