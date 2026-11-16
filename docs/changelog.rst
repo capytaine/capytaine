@@ -48,6 +48,8 @@ Minor changes
 
 * Build wheels for Linux on aarch64 (ARM64), such as AWS Graviton instances or Linux containers on Apple Silicon Macs.
 
+* The Fortran core is compiled with OpenMP on macOS, such that the computation of the interaction matrices is parallelized on all platforms. (:pull:`596`)
+
 * :meth:`~capytaine.ui.vedo_animations.Animation.add_body` and :meth:`~capytaine.ui.vedo_animations.Animation.add_free_surface` accept new keyword arguments ``color``, ``edge_color`` and ``cmap`` to customize the colors of the animation.
   The ``axes`` parameter of ``vedo.Plotter`` can now be passed to :meth:`~capytaine.ui.vedo_animations.Animation.run` and :meth:`~capytaine.ui.vedo_animations.Animation.save` (e.g. ``axes=0`` to hide the axes).
 
