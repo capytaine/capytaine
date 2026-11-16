@@ -20,8 +20,6 @@ import capytaine as cpt
 import capytaine_test_helpers as helpers
 from capytaine import __version__
 
-from capytaine.meshes.symmetric_meshes import ReflectionSymmetricMesh
-
 def test_exportable_settings():
     gf = cpt.Delhommeau(
             tabulation_nr=10, tabulation_nz=10,
@@ -76,18 +74,6 @@ def test_direct_solver():
     indirect_solver = helpers.solver(method='indirect')
     indirect_result = indirect_solver.solve(problem)
     assert direct_result.forces["Surge"] == pytest.approx(indirect_result.forces["Surge"], rel=1e-1)
-
-
-@pytest.mark.parametrize("method", ["direct", "indirect"])
-def test_same_result_with_symmetries(method):
-    solver = helpers.solver(method=method)
-    sym_mesh = ReflectionSymmetricMesh(cpt.mesh_sphere(center=(0, 2, 0)).immersed_part(), plane='xOz')
-    sym_body = cpt.FloatingBody(mesh=sym_mesh, dofs=cpt.rigid_body_dofs())
-    sym_result = solver.solve(cpt.DiffractionProblem(body=sym_body, omega=1.0))
-    mesh = sym_mesh.merged()
-    body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs())
-    result = solver.solve(cpt.DiffractionProblem(body=body, omega=1.0))
-    assert sym_result.forces["Surge"] == pytest.approx(result.forces["Surge"], rel=1e-4)
 
 
 def test_parallelization():

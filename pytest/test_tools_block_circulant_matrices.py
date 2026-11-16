@@ -328,3 +328,104 @@ def test_block_diagonal_matrix_to_array_keeps_the_precision():
     A = BlockDiagonalMatrix([_rand(2, 2).astype(np.complex64) for _ in range(3)])
     assert np.array(A).dtype == np.complex64
     assert np.array(A, dtype=np.complex128).dtype == np.complex128
+
+
+def _well_conditioned_blocks(nb_blocks, n=3):
+    return [(2*nb_blocks if i == 0 else 1)*np.eye(n) + _rand(n, n) for i in range(nb_blocks)]
+
+
+# One case for each code path of `block_diagonalize` and `_fourier_shape`:
+# explicit formula for 2 blocks or FFT, 2x2 nested blocks or outer FFT only.
+CODE_PATHS = [
+    (BlockCirculantMatrix, 2),
+    (BlockCirculantMatrix, 3),
+    (NestedBlockCirculantMatrix, 4),
+    (NestedBlockCirculantMatrix, 6),
+]
+
+
+@pytest.mark.parametrize("matrix_type,nb_blocks", CODE_PATHS)
+def test_solvers_of_block_circulant_matrices(matrix_type, nb_blocks):
+    from capytaine.bem.linear_solvers import solve_gmres
+    A = matrix_type(_well_conditioned_blocks(nb_blocks))
+    full_A = np.array(A)
+    b = _rand(A.shape[0])
+    expected = np.linalg.solve(full_A, b)
+    assert np.allclose(A.solve(b), expected)
+    assert np.allclose(lu_decompose(A).solve(b), expected)
+    assert np.allclose(solve_gmres(A, b), expected, atol=1e-5)
+
+
+def test_fourier_transform_of_rhs_is_consistent_with_block_diagonalization():
+    """Check that `_block_fft` with `_fourier_shape` maps A @ x on block_diagonalize(A) @ x_hat."""
+    from capytaine.tools.block_circulant_matrices import _block_fft
+    for matrix_type, nb_blocks in CODE_PATHS:
+        A = matrix_type(_well_conditioned_blocks(nb_blocks))
+        x = _rand(A.shape[0])
+        assert np.allclose(
+            _block_fft(A @ x, A._fourier_shape),
+            np.array(A.block_diagonalize()) @ _block_fft(x, A._fourier_shape),
+        )
+
+
+@pytest.mark.parametrize("nb_blocks", [2, 3])
+@pytest.mark.parametrize("real_dtype,complex_dtype", [(np.float64, np.complex128), (np.float32, np.complex64)])
+def test_block_diagonalize_real_blocks(nb_blocks, real_dtype, complex_dtype):
+    blocks = [((2*nb_blocks if i == 0 else 1)*np.eye(3) + RNG.normal(size=(3, 3))).astype(real_dtype)
+              for i in range(nb_blocks)]
+    A = BlockCirculantMatrix(blocks)
+    diag_A = A.block_diagonalize()
+    assert diag_A.dtype in (real_dtype, complex_dtype)
+    b = RNG.normal(size=A.shape[0])
+    assert np.allclose(A.solve(b), np.linalg.solve(np.array(A), b), rtol=1e-4)
+
+
+def test_gmres_on_block_diagonal_matrix_dispatches_on_the_type_of_the_blocks():
+    from capytaine.bem.linear_solvers import solve_gmres
+    from capytaine.tools.block_circulant_matrices import BlockDiagonalMatrix
+    A = BlockDiagonalMatrix([10*np.eye(3) + _rand(3, 3) for _ in range(4)])
+    for b in [_rand(12), np.concatenate([np.zeros(6), _rand(6)])]:
+        assert np.allclose(solve_gmres(A, b), np.linalg.solve(np.array(A), b), atol=1e-5)
+
+    # A subclass of np.ndarray standing for the arrays of another array library.
+    # (It stays registered after the test, as singledispatch has no unregister.)
+    class OtherArray(np.ndarray):
+        pass
+
+    calls = []
+    @solve_gmres.register(OtherArray)
+    def _(A, b):
+        calls.append(A.shape)
+        return np.linalg.solve(np.asarray(A), b)
+
+    A_other = BlockDiagonalMatrix(np.stack([np.asarray(bl) for bl in A.blocks]).view(OtherArray))
+    b = _rand(12)
+    assert np.allclose(solve_gmres(A_other, b), np.linalg.solve(np.array(A), b))
+    assert calls == [(3, 3)]*4
+
+
+@pytest.mark.parametrize("matrix_type,nb_blocks", CODE_PATHS)
+def test_gmres_keeps_single_precision(matrix_type, nb_blocks):
+    from capytaine.bem.linear_solvers import solve_gmres
+    A = matrix_type([bl.astype(np.complex64) for bl in _well_conditioned_blocks(nb_blocks)])
+    b = _rand(A.shape[0]).astype(np.complex64)
+    x = solve_gmres(A, b)
+    assert x.dtype == np.complex64
+    assert np.allclose(x, np.linalg.solve(np.array(A), b), rtol=1e-3, atol=1e-4)
+
+
+@pytest.mark.parametrize("matrix_type,nb_blocks", CODE_PATHS)
+@pytest.mark.parametrize("real_blocks", [True, False])
+def test_solve_with_array_api_strict(matrix_type, nb_blocks, real_blocks):
+    xps = pytest.importorskip("array_api_strict")  # Not available on Python 3.8
+    blocks = _well_conditioned_blocks(nb_blocks)
+    if real_blocks:
+        blocks = [bl.real for bl in blocks]
+    A = matrix_type(blocks)
+    A_strict = matrix_type([xps.asarray(bl) for bl in blocks])
+    b = RNG.normal(size=A.shape[0])  # Real right-hand side
+    expected = np.linalg.solve(np.array(A), b)
+    x = A_strict.solve(xps.asarray(b))
+    assert x.__array_namespace__() is xps
+    assert np.allclose(np.asarray(x), expected)
+    assert np.allclose(np.asarray(A_strict @ xps.asarray(b)), np.array(A) @ b)

@@ -17,21 +17,19 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Tuple, Union, Optional, Callable
 
-import numpy as np
-import scipy.sparse.linalg as ssl
-
 from capytaine.meshes.symmetric_meshes import ReflectionSymmetricMesh, RotationSymmetricMesh
 
 from capytaine.green_functions.abstract_green_function import AbstractGreenFunction, GreenFunctionEvaluationError
 from capytaine.green_functions.delhommeau import Delhommeau
 
-from capytaine.tools.array_backend import MatrixLike, array_namespace, complex_dtype, is_numpy_namespace
+from capytaine.tools.array_backend import MatrixLike, array_namespace, complex_dtype
 from capytaine.tools.lazy_matrices import LazyMatrix
 from capytaine.tools.block_circulant_matrices import (
     BlockCirculantMatrix,
     NestedBlockCirculantMatrix,
 )
 from capytaine.bem.linear_solvers import (
+    solve_gmres,
     lu_decompose,
     has_been_lu_decomposed,
     AbstractLUDecomposedMatrix
@@ -64,32 +62,6 @@ class MatrixEngine(ABC):
 ##################
 #  BASIC ENGINE  #
 ##################
-
-class Counter:
-    def __init__(self):
-        self.nb_iter = 0
-
-    def __call__(self, *args, **kwargs):
-        self.nb_iter += 1
-
-
-def solve_gmres(A, b):
-    LOG.debug(f"Solve with GMRES for {A}.")
-
-    if LOG.isEnabledFor(logging.INFO):
-        counter = Counter()
-        x, info = ssl.gmres(A, b, atol=1e-6, callback=counter)
-        LOG.info(f"End of GMRES after {counter.nb_iter} iterations.")
-
-    else:
-        x, info = ssl.gmres(A, b, atol=1e-6)
-
-    if info > 0:
-        raise RuntimeError(f"No convergence of the GMRES after {info} iterations.\n"
-                            "This can be due to overlapping panels or irregular frequencies.")
-
-    return x
-
 
 LUDecomposedMatrixOrNot = Union[MatrixLike, AbstractLUDecomposedMatrix]
 
@@ -350,10 +322,6 @@ class DefaultMatrixEngine(MatrixEngine):
             return luA.solve(b)
 
         elif self._linear_solver == "gmres":
-            if not is_numpy_namespace(array_namespace(A)):
-                raise NotImplementedError(
-                    "The 'gmres' linear solver is only available for matrices stored as NumPy arrays."
-                )
             return solve_gmres(A, b)
 
         else:
@@ -390,10 +358,12 @@ class DefaultMatrixEngine(MatrixEngine):
                 "nested": 1 / 2, # (2 * 1/4 + 1/2) / 2
                 "rotation": 3 / 2,
             },
+            # Formula to compute the factor of gain:
+            # (2 matrices * theoretical symmetry factor + block diagonalization) / nb matrices without symmetry
             "gmres": {
-                "simple": 1 / 2,
-                "nested": 1 / 4,
-                "rotation": 1,
+                "simple": 3 / 4,  # (2 * 1/2 + 1/2) / 2
+                "nested": 3 / 8,  # (2 * 1/4 + 1/4) / 2
+                "rotation": 3 / 2,
             },
         }
 

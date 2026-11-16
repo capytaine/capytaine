@@ -21,7 +21,7 @@ except ImportError:  # Not available on Python 3.8
     xps = None
 
 from capytaine.tools.array_backend import (
-    IterableTensor, array_namespace, complex_dtype, ending_dimensions_at_the_beginning, is_array,
+    IterableTensor, array_namespace, as_complex, complex_dtype, ending_dimensions_at_the_beginning, is_array,
     is_numpy_namespace, leading_dimensions_at_the_end, split, to_backend_of, to_numpy,
 )
 from capytaine.tools.symbolic_multiplication import SymbolicMultiplication
@@ -46,6 +46,19 @@ def test_complex_dtype_preserves_precision(xp):
     assert complex_dtype(xp, xp.complex64) == xp.complex64
     assert complex_dtype(xp, xp.float64) == xp.complex128
     assert complex_dtype(xp, xp.complex128) == xp.complex128
+
+
+@pytest.mark.parametrize("xp", [np, pytest.param(xps, marks=requires_strict)])
+@pytest.mark.parametrize("dtype,expected", [("float32", "complex64"), ("float64", "complex128"),
+                                            ("complex64", "complex64"), ("complex128", "complex128")])
+def test_as_complex(xp, dtype, expected):
+    x = xp.asarray([1.0, 2.0], dtype=getattr(xp, dtype))
+    y = as_complex(x)
+    assert array_namespace(y) is array_namespace(x)
+    assert y.dtype == getattr(xp, expected)
+    np.testing.assert_array_equal(np.asarray(y), np.asarray([1.0, 2.0]))
+    if dtype == expected:
+        assert y is x  # Complex arrays are returned unchanged
 
 
 @requires_strict

@@ -21,7 +21,7 @@ from array_api_compat import array_namespace, device, is_numpy_array, to_device
 from capytaine.tools.symbolic_multiplication import SymbolicMultiplication
 
 __all__ = [
-    "MatrixLike", "array_namespace", "device", "is_array", "is_numpy_namespace", "complex_dtype", "to_backend_of", "to_numpy",
+    "MatrixLike", "array_namespace", "device", "is_array", "is_numpy_namespace", "complex_dtype", "as_complex", "to_backend_of", "to_numpy",
     "IterableTensor", "split", "leading_dimensions_at_the_end", "ending_dimensions_at_the_beginning",
 ]
 
@@ -57,6 +57,15 @@ def is_numpy_namespace(xp):
 def complex_dtype(xp, dtype):
     """Complex dtype with the same precision as `dtype`."""
     return xp.complex64 if dtype in (xp.float32, xp.complex64) else xp.complex128
+
+
+def as_complex(x):
+    """Cast a real array to the complex dtype of the same precision, in the same array library.
+    A complex array is returned unchanged."""
+    xp = array_namespace(x)
+    if xp.isdtype(x.dtype, "complex floating"):
+        return x
+    return xp.astype(x, complex_dtype(xp, x.dtype))
 
 
 def to_backend_of(x, like, *, complex_=False):
