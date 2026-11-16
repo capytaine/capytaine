@@ -55,6 +55,7 @@ Minor changes
   The number of iterations differs from previous versions, and the GMRES of each block stops as soon as this block has converged.
   The block-diagonalized matrix is a temporary copy of the size of the compressed matrix, which is now taken into account in the RAM estimation of :class:`~capytaine.bem.engines.DefaultMatrixEngine`.
 
+* Velocity computation post-processing (for forward speed or mean drift force) now computes the velocity on small chunks of mesh at a time, to avoid large memory usage. (:pull:`985`)
 
 Bug fixes
 ~~~~~~~~~
