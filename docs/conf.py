@@ -112,7 +112,8 @@ html_theme_options = {
       'github_repo': 'capytaine',
       'github_banner': 'false',  # "Fork me on Github" banner
       'github_button': 'false',  # Button with e.g. stars number
-      'logo_name': "Capytaine",
+      'logo': 'capytaine_logo.png',
+      'logo_name': 'false',  # the wordmark is already part of the logo image
       'description': "a Python-based linear potential flow BEM solver",
       }
 
@@ -120,6 +121,9 @@ html_theme_options = {
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
+
+# Browser tab icon, cropped from the Capytaine logo.
+html_favicon = '_static/favicon.ico'
 
 # Custom sidebar templates, must be a dictionary that maps document names
 # to template names.
@@ -129,7 +133,9 @@ html_static_path = ['_static']
 # default: ``['localtoc.html', 'relations.html', 'sourcelink.html',
 # 'searchbox.html']``.
 
-html_sidebars = {}
+# The front page is full-width, without a sidebar; every other page keeps
+# the theme's default sidebar (with the logo on top, see html_theme_options).
+html_sidebars = {'index': []}
 
 
 # -- Options for HTMLHelp output ---------------------------------------------
