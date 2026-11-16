@@ -34,8 +34,21 @@ jobs:
       - name: Set up Just
         run: sudo apt install -y just
 
+      # The front page animation is rendered by `just build_docs` only if it is not already there.
+      # Update the list of files in the key if other files are used to render it.
+      - name: Restore front page animation from cache
+        id: cache-animation
+        uses: actions/cache@v4
+        with:
+          path: docs/_static/front_page_animation.mp4
+          key: front-page-animation-${{ hashFiles('docs/examples/src/B7_boat_animation.py', 'docs/examples/src/boat_200.mar', 'src/capytaine/ui/vedo_animations.py') }}
+
+      - name: Set up Xvfb to render the front page animation
+        if: steps.cache-animation.outputs.cache-hit != 'true'
+        run: sudo apt install -y xvfb
+
       - name: Set up UV
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v10.3.3
         with:
           enable-cache: true
 
