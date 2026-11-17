@@ -125,13 +125,13 @@ Capytaine: a Python-based linear potential flow BEM solver
 
 .. container:: mews-support
 
-   .. rubric:: Professional support available from `Mews Labs <https://www.mews-labs.com/>`_
+   .. rubric:: Professional support available from `Mews Labs <https://www.mews-partners.com/mews-labs/>`_
 
-   Mews Labs is a 30+-people team of engineers and data scientists working on scientific computing, machine learning and artificial intelligence.
+   Mews Labs is a 35+-people team of engineers and data scientists working on scientific computing, machine learning and artificial intelligence.
    Beside Capytaine development, we help industries solve complex modelling and optimization problems and integrate data science and AI toolchains in their workflow.
    Contact us for training, support or new features development in Capytaine.
 
-   Contact `Mews Labs <https://www.mews-labs.com/>`_ · contact@mews-labs.com
+   Contact `Mews Labs <https://www.mews-partners.com/mews-labs/>`_ · contact@mews-labs.com
 
 
 For free community support, ask on the `Github discussion page <https://github.com/capytaine/capytaine/discussions>`_ or open a `Github issue <https://github.com/capytaine/capytaine/issues/>`_ — please do not contact the developers directly by email, unless you are looking for private paid support.
