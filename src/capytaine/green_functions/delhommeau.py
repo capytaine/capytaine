@@ -104,11 +104,13 @@ class Delhommeau(AbstractGreenFunction):
     gf_singularities_index: int
     finite_depth_method_index: int
         Integers passed to Fortran code to describe which method is used.
-    tabulated_r_range: numpy.array of shape (tabulation_nr,) and type floating_point_precision
-    tabulated_z_range: numpy.array of shape (tabulation_nz,) and type floating_point_precision
-        Coordinates of the tabulation points.
-    tabulated_integrals: numpy.array of shape (tabulation_nr, tabulation_nz, nb_tabulated_values) and type floating_point_precision
-        Tabulated Delhommeau integrals.
+    tabulated_r_range: numpy.array
+    tabulated_z_range: numpy.array
+        Coordinates of the tabulation points, of shape (tabulation_nr,) and
+        (tabulation_nz,) respectively and type floating_point_precision.
+    tabulated_integrals: numpy.array
+        Tabulated Delhommeau integrals, of shape (tabulation_nr,
+        tabulation_nz, nb_tabulated_values) and type floating_point_precision.
     """
 
     _default_parameters = dict(
