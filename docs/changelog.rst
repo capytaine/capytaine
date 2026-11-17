@@ -18,68 +18,70 @@ New in version 3.1 (2026-??-??)
 Major changes
 ~~~~~~~~~~~~~
 
-* Add a :class:`~capytaine.bodies.dofs.CustomDof` to define any generalized body mode.
+* **Mean drift force**:
+
+   * Add :func:`~capytaine.post_pro.mean_drift_force.near_field_mean_drift_force` to compute the mean drift force, for any dofs of a :class:`~capytaine.bodies.bodies.FloatingBody` or a :class:`~capytaine.bodies.multibodies.Multibody` (rigid body motions or generalized modes with a gradient of motion). See :doc:`user_manual/post_pro` and cookbook example B9 for details. (:pull:`871`, :pull:`970`)
+
+   * :func:`~capytaine.post_pro.mean_drift_force.near_field_mean_drift_force` has an optional parameter ``output_pressure`` allowing to return second-order pressure field on the hull and waterline fields. See cookbook example B10 for an example of use. (:pull:`949`, :pull:`959`)
+
+   * The near field mean drift force can be exported to WAMIT's `.9` file format. (:pull:`909`)
+
+* **More data in xarray dataset**:
+
+   * :func:`~capytaine.io.xarray.assemble_dataset` and :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` can now include in the output dataset the pressure field on the hull as well as the source distribution for the indirect solver or the potential field for the direct solver.
+     They are included in the dataset by ``assemble_dataset(results)`` automatically if :meth:`~capytaine.bem.solver.BEMSolver.solve` and :meth:`~capytaine.bem.solver.BEMSolver.solve_all` kept this data in the `results` object with their ``keep_details`` argument.
+     The method :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` has a new keyword argument ``keep_details`` (default: ``False``) to keep the mesh data after the BEM resolutions and thus pass them to :func:`~capytaine.io.xarray.assemble_dataset`.
+     See :doc:`user_manual/post_pro` for more details. (:pull:`945`)
+
+   * The ``mesh=True`` option of :func:`~capytaine.io.xarray.assemble_dataset` and :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` now stores the full mesh of the hull (and lid, if any) and the dofs of the body in the dataset, as the variables ``mesh_vertices``, ``mesh_faces_center``, ``lid_mesh_vertices``, ``lid_mesh_faces_center``, ``dof_motions`` and ``dof_gradient_of_motions``. See :doc:`user_manual/post_pro` for more details. (:pull:`947`)
+     Symmetries are currently not supported, the stored mesh is the full unfolded mesh.
+
+* Add a :class:`~capytaine.bodies.dofs.CustomDof` to define **generalized body mode**.
   The legacy style of defining a dof with an array of motions allowed that already, but this new interface also allows optionally to give the gradient (actually jacobian) of the motion which is useful for hydrostatics, forward speed and second-order forces.
   Passing the ``divergence`` parameter to :meth:`~capytaine.bodies.hydrostatics.compute_hydrostatic_stiffness` is discouraged in favor of this new construct.
+  See the *Internals* section below for more information about refactoring of the ``dofs`` module.
   (:pull:`939`)
-
-* :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` has a new keyword argument ``keep_details`` (default: ``False``).
-  When set to ``True``, the pressure field on the hull is kept for each problem and automatically included in the returned dataset as the data variables ``pressure_diffraction``, ``pressure_Froude_Krylov`` and ``pressure_radiation``.
-  The source distribution of the indirect method is also stored, as ``sources_diffraction`` and ``sources_radiation`` (on the hull, with dimension ``hull_face``) and ``sources_lid_diffraction`` and ``sources_lid_radiation`` (on the lid, if any, with dimension ``lid_face``).
-  With the direct method, the potential is stored instead, as ``potential_diffraction``, ``potential_radiation``, ``potential_lid_diffraction`` and ``potential_lid_radiation``.
-  Results of the direct and indirect methods solved with ``keep_details=True`` cannot be assembled in the same dataset (they can with ``keep_details=False``).
-  See :doc:`user_manual/post_pro` for more details.
-
-* The ``mesh=True`` option of :func:`~capytaine.io.xarray.assemble_dataset` and :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` now stores the full mesh of the hull (and lid, if any) and the dofs of the body in the dataset, as the data variables ``mesh_vertices``, ``mesh_faces_center``, ``lid_mesh_vertices``, ``lid_mesh_faces_center``, ``dof_motions`` and ``dof_gradient_of_motions``, instead of just the number of faces.
-  See :doc:`user_manual/post_pro` for more details.
-
-* Add :func:`~capytaine.post_pro.mean_drift_force.near_field_mean_drift_force` to compute the mean drift force, for any dofs of a :class:`~capytaine.bodies.bodies.FloatingBody` or a :class:`~capytaine.bodies.multibodies.Multibody` (rigid body motions or generalized modes with a gradient of motion). (:pull:`871`)
-  It is called as ``near_field_mean_drift_force(first_order_motion_amplitude, dataset, body)``, where ``dataset`` has been computed with the indirect method and ``keep_details=True`` (e.g. ``solver.fill_dataset(test_matrix, body, keep_details=True)``): the first-order fields are evaluated from the source distributions stored in the dataset, without solving the BEM problems again.
-  The force is computed for the frequencies and wave directions common to ``first_order_motion_amplitude`` and ``dataset``, and for the dofs common to them and ``body`` (a warning is logged when some are left out).
-  This function returns a dataset with a ``near_field_mean_drift_force`` variable of shape ``(nb_freq, nb_wave_direction, nb_wave_direction, nb_dofs)``.
-  Optional parameter ``output_pressure`` allows to return the mean drift pressure field on the hull as ``pressure_hull_mean_drift``, of shape ``(nb_freq, nb_wave_direction, nb_wave_direction, nb_hull_faces)``,
-  as well as the first-order fields on the waterline from which the waterline term of the force is computed: ``pressure_waterline_total`` and ``relative_elevation_waterline``, of shape ``(nb_freq, nb_wave_direction, nb_waterline_segments)``, and the waterline segments ``mesh_waterline``.
-  The near field mean drift force can be exported to WAMIT's `.9` file format. (:pull:`909`)
 
 Minor changes
 ~~~~~~~~~~~~~
 
-* Support Pandas 3: remove the upper bound on the version of Pandas. (:issue:`756`)
+* **Build**:
 
-* Build wheels for Linux on aarch64 (ARM64), such as AWS Graviton instances or Linux containers on Apple Silicon Macs.
+   * Support Pandas 3: remove the upper bound on the version of Pandas. (:issue:`756`, :pull:`982`)
 
-* :meth:`~capytaine.ui.vedo_animations.Animation.add_body` and :meth:`~capytaine.ui.vedo_animations.Animation.add_free_surface` accept new keyword arguments ``color``, ``edge_color`` and ``cmap`` to customize the colors of the animation.
-  The ``axes`` parameter of ``vedo.Plotter`` can now be passed to :meth:`~capytaine.ui.vedo_animations.Animation.run` and :meth:`~capytaine.ui.vedo_animations.Animation.save` (e.g. ``axes=0`` to hide the axes).
+   * Build wheels for Linux on aarch64 (ARM64), such as AWS Graviton instances or Linux containers on Apple Silicon Macs. (:pull:`986`)
 
-* With ``linear_solver="gmres"`` and a mesh with symmetries, the right-hand side is transformed with a FFT and an independent GMRES is solved for each diagonal block of the block-diagonalized matrix, instead of a single GMRES using the matrix-vector product of the block circulant matrix.
-  The number of iterations differs from previous versions, and the GMRES of each block stops as soon as this block has converged.
-  The block-diagonalized matrix is a temporary copy of the size of the compressed matrix, which is now taken into account in the RAM estimation of :class:`~capytaine.bem.engines.DefaultMatrixEngine`.
+* **Performance**:
 
-* Velocity computation post-processing (for forward speed or mean drift force) now computes the velocity on small chunks of mesh at a time, to avoid large memory usage. (:pull:`985`)
+   * Velocity computation post-processing (for forward speed or mean drift force) now computes the velocity on small chunks of mesh at a time, to avoid large memory usage. (:pull:`985`)
+
+   * With ``linear_solver="gmres"`` and a mesh with symmetries, the right-hand side is transformed with a FFT and an independent GMRES is solved for each diagonal block of the block-diagonalized matrix, instead of a single GMRES using the matrix-vector product of the block circulant matrix.
+     The number of iterations differs from previous versions, and the GMRES of each block stops as soon as this block has converged.
+     The block-diagonalized matrix is a temporary copy of the size of the compressed matrix, which is now taken into account in the RAM estimation of :class:`~capytaine.bem.engines.DefaultMatrixEngine`. (:pull:`987`)
+
+* **Visualisation**:
+
+   * :meth:`~capytaine.ui.vedo_animations.Animation.add_body` and :meth:`~capytaine.ui.vedo_animations.Animation.add_free_surface` accept new keyword arguments ``color``, ``edge_color`` and ``cmap`` to customize the colors of the animation.
+     The ``axes`` parameter of ``vedo.Plotter`` can now be passed to :meth:`~capytaine.ui.vedo_animations.Animation.run` and :meth:`~capytaine.ui.vedo_animations.Animation.save` (e.g. ``axes=0`` to hide the axes). (:pull:`989`)
+
 
 Bug fixes
 ~~~~~~~~~
 
-* For a mesh without waterline (e.g. a fully submerged body), ``edges_waterline`` and ``faces_waterline`` are now empty 2D arrays (of shape ``(0, 2)`` and ``(0, 4)``) instead of 1D arrays, so that the computations on the waterline do not fail.
-
-* Fix the conversion of a :class:`~capytaine.tools.block_circulant_matrices.BlockDiagonalMatrix` to a NumPy array, that was raising an ``AttributeError``. (:pull:`958`)
-
 * Fix computation of hydrostatic stiffness on multibodies treated as generalized dofs as in previous version. (:pull:`936`)
 
-* Fix double layer term when computing the value at field points without a free surface.
+* For a mesh without waterline (e.g. a fully submerged body), ``edges_waterline`` and ``faces_waterline`` are now empty 2D arrays (of shape ``(0, 2)`` and ``(0, 4)``) instead of 1D arrays, so that the computations on the waterline do not fail. (:pull:`968`)
 
-* Fix a stutter in the looping animations of :class:`~capytaine.ui.vedo_animations.Animation`: the last frame was identical to the first one.
+* Fix a memory leak when solving with a mesh having two nested symmetries (two reflection planes or a dihedral symmetry): the influence matrices of all the previously solved frequencies were kept in memory. (:pull:`977`)
 
 * The GDF reader of :func:`~capytaine.meshes.io.load_mesh` now follows the free format of WAMIT: the coordinates of a panel can be spread over any number of lines, extra tokens after them (e.g. a panel number) and lines after the ``NPAN`` panels (e.g. ``NPAND``) are ignored, and commas and ``D`` exponents are accepted.
-  A warning is emitted for the dipole panels of the WAMIT Version 6 format, which are not supported, and an error is raised for walls (negative ``ISX`` or ``ISY``) and higher-order geometries (``IGDEF`` other than 0).
+  A warning is emitted for the dipole panels of the WAMIT Version 6 format, which are not supported, and an error is raised for walls (negative ``ISX`` or ``ISY``) and higher-order geometries (``IGDEF`` other than 0). (:pull:`978`)
 
-* Fix a memory leak when solving with a mesh having two nested symmetries (two reflection planes or a dihedral symmetry): the influence matrices of all the previously solved frequencies were kept in memory.
+* Fix :meth:`~capytaine.meshes.meshes.Mesh.extract_faces` on a mesh with faces metadata, that was failing. It now also accepts a slice or a boolean mask to select the faces. (:pull:`979`)
 
-* Fix the hash of Green functions, which depended on the identity of the object instead of on its settings: two identical Green functions now have the same hash.
+* Fix the build from source on Linux aarch64, where GCC has no libquadmath: only link it on Windows. (:pull:`986`)
 
-* Fix :meth:`~capytaine.meshes.meshes.Mesh.extract_faces` on a mesh with faces metadata, that was failing. It now also accepts a slice or a boolean mask to select the faces.
-
-* Fix the build from source on Linux aarch64, where GCC has no libquadmath: only link it on Windows.
+* Fix a stutter in the looping animations of :class:`~capytaine.ui.vedo_animations.Animation`: the last frame was identical to the first one. (:pull:`989`)
 
 * The self-influence term of the double layer operators is now added wherever a collocation point lies on a face of the source mesh, with the normal of that face, instead of on the diagonal of the matrix, assuming that the first faces of both meshes are the same.
   In particular, velocities on the hull computed at an array of points or on a sub-mesh are now the limit on the fluid side, as they already were when passing the mesh itself.
@@ -88,39 +90,47 @@ Bug fixes
   A lid slightly below the free surface (closer than ``5e-5`` times the radius of its faces) now also gets the coefficient 1 instead of 1/2, such that the coefficient varies continuously with the depth of the lid.
   Faces on the free surface are not supported by the legacy finite depth method (``finite_depth_method="legacy"``): they now get the coefficient 1/2 instead of 1.
   Non-planar quadrilateral faces (which are not officially supported) now get a coefficient slightly different from 1/2, consistent with the limit from the side of the normal.
-  For faces on the free surface (such as lids), the self-influence of the wave part is only computed at the center of the face: the velocity cannot be reconstructed at other points of these faces (see :doc:`user_manual/post_pro`).
+  For faces on the free surface (such as lids), the self-influence of the wave part is only computed at the center of the face: the velocity cannot be reconstructed at other points of these faces (see :doc:`user_manual/post_pro`). (:pull:`983`)
 
 * At infinite frequency, ``Delhommeau(finite_depth_method="legacy", gf_singularities="high_freq")`` now uses the high_freq variant of the Green function, as the other settings do, instead of the low_freq one, which was giving wrong results at this frequency.
-  Unsupported combinations of frequency and ``gf_singularities`` now raise a ``NotImplementedError`` instead of returning wrong results.
+  Unsupported combinations of frequency and ``gf_singularities`` now raise a ``NotImplementedError`` instead of returning wrong results. (:pull:`983`)
 
 Internals
 ~~~~~~~~~
 
-* Methods about LU decomposition of numpy arrays have moved from :mod:`~capytaine.tools.block_circulant_matrices` to the new module :mod:`~capytaine.bem.linear_solvers`, and the GMRES solver has moved from :mod:`~capytaine.bem.engines` to the same module as :func:`~capytaine.bem.linear_solvers.solve_gmres`.
-  :func:`~capytaine.bem.linear_solvers.lu_decompose` and :func:`~capytaine.bem.linear_solvers.solve_gmres` are now :func:`functools.singledispatch` functions,
-  and the LU decompositions are subclasses of the new abstract class :class:`~capytaine.bem.linear_solvers.AbstractLUDecomposedMatrix`.
-  The LU decomposition or GMRES solve of a new type of matrices can be supported by the linear solver of the :class:`~capytaine.bem.engines.DefaultMatrixEngine` by registering it with ``lu_decompose.register`` and ``solve_gmres.register``. (:pull:`954`)
+* Add a :code:`pressure_on_hull` attribute to
+  :class:`~capytaine.bem.problems_and_results.LinearPotentialFlowResult`, equal
+  to :code:`pressure` restricted to the faces of the hull mesh, excluding the
+  lid used to remove irregular frequencies (if any). (:pull:`945`)
 
-* Add the dependency `array-api-compat <https://data-apis.org/array-api-compat/>`_ (and `array-api-strict <https://github.com/data-apis/array-api-strict>`_ to the test dependencies).
-  The new module :mod:`capytaine.tools.array_backend` provides helpers (``is_array``, ``complex_dtype``, ``as_complex``, ``to_backend_of``, ``to_numpy``) to write code that works with any array library implementing the array API standard. (:pull:`956`)
+* Fix the hash of Green functions, which depended on the identity of the object instead of on its settings: two identical Green functions now have the same hash. The string representation (``__str__``, ``__repr__``) and the hash of Green functions are now implemented once in :class:`~capytaine.green_functions.abstract_green_function.AbstractGreenFunction`, driven by ``exportable_settings`` and a ``_default_parameters`` class attribute. (:pull:`953`)
 
-* The :class:`~capytaine.bem.solver.BEMSolver` and the :class:`~capytaine.bem.engines.DefaultMatrixEngine` can now work with a Green function returning matrices from another array library than NumPy, as long as it implements the array API standard (using ``array-api-compat``) and an LU decomposition has been registered with :func:`~capytaine.bem.linear_solvers.lu_decompose`. (:pull:`957`)
-  The results and the post-processing stay NumPy arrays.
-  The subclasses of :class:`~capytaine.bem.linear_solvers.AbstractLUDecomposedMatrix` now have to define the method ``__array_namespace__`` and the attribute ``device``, as arrays of the array API standard do.
-  The Green functions have new attributes ``matrices_array_backend`` and ``matrices_device`` to declare the array library and the device of their matrices (NumPy and ``"cpu"`` by default).
-  The ``gmres`` linear solver raises ``NotImplementedError`` for matrices that are not NumPy arrays.
-  Meshes with symmetries are supported: the block matrices of :mod:`capytaine.tools.block_circulant_matrices` are now implemented with the array API standard instead of NumPy. (:pull:`958`)
-  They can be built from an array of shape ``(nb_blocks, n, m)`` or a list of blocks.
-  The blocks of a :class:`~capytaine.tools.block_circulant_matrices.BlockCirculantMatrix` have to be arrays and not other block matrices anymore (use :class:`~capytaine.tools.block_circulant_matrices.NestedBlockCirculantMatrix` instead).
+* **Generic matrix backend**:
 
-* The self-influence term of the double layer operators is computed in the Fortran core as the one-sided limit of the integral of the Rankine term (and of its reflections) over the faces, wherever a collocation point lies on a face.
-  The Fortran subroutine ``add_diagonal_term`` has been removed.
+   * Add the dependency `array-api-compat <https://data-apis.org/array-api-compat/>`_ (and `array-api-strict <https://github.com/data-apis/array-api-strict>`_ to the test dependencies).
+     The new module :mod:`capytaine.tools.array_backend` provides helpers (``is_array``, ``complex_dtype``, ``as_complex``, ``to_backend_of``, ``to_numpy``) to write code that works with any array library implementing the array API standard. (:pull:`956`)
 
-* **Breaking** The ``diagonal_term_in_double_layer`` parameter of the ``evaluate`` methods of the Green functions (and of the matrix engine) has been removed: the self-influence term is always included.
-  Custom Green functions should include the self-influence term in their double layer operators, since the engine does not ask for it anymore.
-  For a mesh evaluated on itself with planar faces, the principal value can be recovered by subtracting 1/2 from the diagonal (1 for faces on the free surface or on the sea bottom).
+   * The :class:`~capytaine.bem.solver.BEMSolver` and the :class:`~capytaine.bem.engines.DefaultMatrixEngine` can now work with a Green function returning matrices from another array library than NumPy, as long as it implements the array API standard (using ``array-api-compat``) and an LU decomposition has been registered with :func:`~capytaine.bem.linear_solvers.lu_decompose`. (:pull:`957`)
+     The results and the post-processing stay NumPy arrays.
+     The subclasses of :class:`~capytaine.bem.linear_solvers.AbstractLUDecomposedMatrix` now have to define the method ``__array_namespace__`` and the attribute ``device``, as arrays of the array API standard do.
+     The Green functions have new attributes ``matrices_array_backend`` and ``matrices_device`` to declare the array library and the device of their matrices (NumPy and ``"cpu"`` by default).
+     The ``gmres`` linear solver raises ``NotImplementedError`` for matrices that are not NumPy arrays.
+     Meshes with symmetries are supported: the block matrices of :mod:`capytaine.tools.block_circulant_matrices` are now implemented with the array API standard instead of NumPy.
+     Meanwhile, fix the conversion of a :class:`~capytaine.tools.block_circulant_matrices.BlockDiagonalMatrix` to a NumPy array, that was raising an ``AttributeError``. (:pull:`958`)
+     Block matrices can now be built from an array of shape ``(nb_blocks, n, m)`` or a list of blocks.
+     The blocks of a :class:`~capytaine.tools.block_circulant_matrices.BlockCirculantMatrix` have to be arrays and not other block matrices anymore (use :class:`~capytaine.tools.block_circulant_matrices.NestedBlockCirculantMatrix` instead).
 
-* The string representation (``__str__``, ``__repr__``) and the hash of Green functions are now implemented once in :class:`~capytaine.green_functions.abstract_green_function.AbstractGreenFunction`, driven by ``exportable_settings`` and a ``_default_parameters`` class attribute.
+   * Methods about LU decomposition of numpy arrays have moved from :mod:`~capytaine.tools.block_circulant_matrices` to the new module :mod:`~capytaine.bem.linear_solvers`, and the GMRES solver has moved from :mod:`~capytaine.bem.engines` to the same module as :func:`~capytaine.bem.linear_solvers.solve_gmres`.
+     :func:`~capytaine.bem.linear_solvers.lu_decompose` and :func:`~capytaine.bem.linear_solvers.solve_gmres` are now :func:`functools.singledispatch` functions,
+     and the LU decompositions are subclasses of the new abstract class :class:`~capytaine.bem.linear_solvers.AbstractLUDecomposedMatrix`.
+     The LU decomposition or GMRES solve of a new type of matrices can be supported by the linear solver of the :class:`~capytaine.bem.engines.DefaultMatrixEngine` by registering it with ``lu_decompose.register`` and ``solve_gmres.register``. (:pull:`954`, :pull:`987`)
+
+
+* Speed up the test suite by about a factor of 2, by running it with
+  ``OMP_NUM_THREADS=1`` (multithreading is mostly overhead on the small meshes of
+  the tests) and by sharing the Green function instances between tests (instead
+  of reloading the tabulation at each test). Helpers shared by several test
+  files are gathered in ``pytest/capytaine_test_helpers.py``. (:pull:`960`)
 
 * **Rework the dof module**:
 
@@ -133,18 +143,18 @@ Internals
     the low-level definition of the dofs, to be implemented by most subclasses of
     :class:`~capytaine.bodies.dofs.AbstractDof`, except when reference to the mesh is required
     like for :class:`~capytaine.bodies.dofs.DofOnSubmesh`.
-    User implemented subclasses of ``AbstractDof`` needs no change.
+    User implemented subclasses of ``AbstractDof`` needs no change. (:pull:`969`)
 
   * The implementations of :meth:`~capytaine.bodies.dofs.AbstractDof.evaluate_motion_at_points` and
     :meth:`~capytaine.bodies.dofs.AbstractDof.evaluate_gradient_of_motion_at_points`
-    accept arrays of points of shape ``(..., 3)`` instead of only ``(nb_points, 3)``.
+    accept arrays of points of shape ``(..., 3)`` instead of only ``(nb_points, 3)``. (:pull:`969`)
 
   * Remove the ``evaluate_motion_at_points`` and ``evaluate_gradient_of_motion_at_points``
     methods of :class:`~capytaine.bodies.dofs.DofOnSubmesh` which
-    were indexing arbitrary points as if they were mesh faces. (:pull:`938`)
+    were indexing arbitrary points as if they were mesh faces. (:pull:`938`, :pull:`969`)
 
   * :class:`~capytaine.bodies.dofs.DofOnSubmesh` now only accepts a boolean array of size
-    ``nb_faces`` to define its faces (not anymore a list of indices or a slice).
+    ``nb_faces`` to define its faces (not anymore a list of indices or a slice). (:pull:`969`)
 
   * Add :meth:`~capytaine.bodies.dofs.AbstractDof.evaluate_second_order_motion` to the dofs,
     returning the second-order term of the expansion of the motion with respect to the amplitude of a pair of dofs.
@@ -154,40 +164,40 @@ Internals
     returning the gradient of the second-order motion.
     They take a location argument like the first order ones.
     For :class:`~capytaine.bodies.dofs.DofOnSubmesh`, it is zero outside of the faces common to both dofs
-    (e.g. for two rotations of two different bodies of a multibody).
+    (e.g. for two rotations of two different bodies of a multibody). (:pull:`961`)
 
-* Add a :code:`pressure_on_hull` attribute to
-  :class:`~capytaine.bem.problems_and_results.LinearPotentialFlowResult`, equal
-  to :code:`pressure` restricted to the faces of the hull mesh, excluding the
-  lid used to remove irregular frequencies (if any).
+* **Tooling for mean drift force**:
 
-* Speed up the test suite by about a factor of 2, by running it with
-  ``OMP_NUM_THREADS=1`` (multithreading is mostly overhead on the small meshes of
-  the tests) and by sharing the Green function instances between tests (instead
-  of reloading the tabulation at each test). Helpers shared by several test
-  files are gathered in ``pytest/capytaine_test_helpers.py``.
+   * Add :class:`~capytaine.tools.perturbation_expansion.PerturbationExpansion` to
+     compute product of first and second order expansions, for the second-order
+     forces. It supports batched fields (e.g. one matrix per face), accepts plain
+     arrays and scalars as order-0 operands, and provides ``trace``, ``sum``,
+     ``expand_dims``, ``squeeze``, ``det`` and ``inv``.
+     Its subclass :class:`~capytaine.tools.perturbation_expansion.DifferenceFrequencyExpansion`
+     holds complex amplitudes for several wave components at once, and computes the full
+     difference-frequency QTF of an expression in one evaluation.
+     First-order quantities are built with :meth:`~capytaine.tools.perturbation_expansion.DifferenceFrequencyExpansion.first_order`.
+     :func:`~capytaine.post_pro.mean_drift_force.near_field_mean_drift_force` is now computed with :class:`~capytaine.tools.perturbation_expansion.DifferenceFrequencyExpansion`,
+     from the unexpanded integral of the pressure on the moving body, for any dofs
+     with a gradient of motion, with the help of
+     :meth:`~capytaine.bodies.bodies.FloatingBody.integrate_pressure_on_moving_body`
+     and
+     :meth:`~capytaine.bodies.bodies.FloatingBody.integrate_pressure_on_waterline`.
+     Add the properties ``middle_edges_waterline``, ``normals_edges_waterline`` and ``indices_faces_waterline`` to the meshes. (:pull:`962`)
 
-* Add :class:`~capytaine.tools.perturbation_expansion.PerturbationExpansion` to
-  compute product of first and second order expansions, for the second-order
-  forces. It supports batched fields (e.g. one matrix per face), accepts plain
-  arrays and scalars as order-0 operands, and provides ``trace``, ``sum``,
-  ``expand_dims``, ``squeeze``, ``det`` and ``inv``.
-  Its subclass :class:`~capytaine.tools.perturbation_expansion.DifferenceFrequencyExpansion`
-  holds complex amplitudes for several wave components at once, and computes the full
-  difference-frequency QTF of an expression in one evaluation.
-  First-order quantities are built with :meth:`~capytaine.tools.perturbation_expansion.DifferenceFrequencyExpansion.first_order`.
-  :func:`~capytaine.post_pro.mean_drift_force.near_field_mean_drift_force` is now computed with :class:`~capytaine.tools.perturbation_expansion.DifferenceFrequencyExpansion`,
-  from the unexpanded integral of the pressure on the moving body, for any dofs
-  with a gradient of motion, with the help of
-  :meth:`~capytaine.bodies.bodies.FloatingBody.integrate_pressure_on_moving_body`
-  and
-  :meth:`~capytaine.bodies.bodies.FloatingBody.integrate_pressure_on_waterline`.
-  Add the properties ``middle_edges_waterline``, ``normals_edges_waterline`` and ``indices_faces_waterline`` to the meshes.
+   * Add the private methods ``BEMSolver._compute_potential_from_sources`` and ``BEMSolver._compute_potential_gradient_from_sources``, evaluating the potential or its gradient from bare source distributions (given with the mesh and the Green function parameters, without a result object).
+     The sources can have leading batch axes, in which case the influence matrix is built only once and multiplied by all the source distributions at once.
+     :meth:`~capytaine.bem.solver.BEMSolver.compute_potential`, :meth:`~capytaine.bem.solver.BEMSolver.compute_velocity`, :meth:`~capytaine.bem.solver.BEMSolver.compute_pressure` and :meth:`~capytaine.bem.solver.BEMSolver.compute_free_surface_elevation` are now thin wrappers around them.
+     The ``LazyMatrix`` class now supports products with a 2D right-hand side. (:pull:`965`)
 
-* Add the private methods ``BEMSolver._compute_potential_from_sources`` and ``BEMSolver._compute_potential_gradient_from_sources``, evaluating the potential or its gradient from bare source distributions (given with the mesh and the Green function parameters, without a result object).
-  The sources can have leading batch axes, in which case the influence matrix is built only once and multiplied by all the source distributions at once.
-  :meth:`~capytaine.bem.solver.BEMSolver.compute_potential`, :meth:`~capytaine.bem.solver.BEMSolver.compute_velocity`, :meth:`~capytaine.bem.solver.BEMSolver.compute_pressure` and :meth:`~capytaine.bem.solver.BEMSolver.compute_free_surface_elevation` are now thin wrappers around them.
-  The ``LazyMatrix`` class now supports products with a 2D right-hand side.
+* **Rework of the diagonal term in double layer operators**:
+
+   * The self-influence term of the double layer operators is computed in the Fortran core as the one-sided limit of the integral of the Rankine term (and of its reflections) over the faces, wherever a collocation point lies on a face.
+     The Fortran subroutine ``add_diagonal_term`` has been removed. (:pull:`983`)
+
+   * **Breaking (for custom Green function implementations)** The ``diagonal_term_in_double_layer`` parameter of the ``evaluate`` methods of the Green functions (and of the matrix engine) has been removed: the self-influence term is always included.
+     Custom Green functions should include the self-influence term in their double layer operators, since the engine does not ask for it anymore.
+     For a mesh evaluated on itself with planar faces, the principal value can be recovered by subtracting 1/2 from the diagonal (1 for faces on the free surface or on the sea bottom). (:pull:`983`)
 
 
 -------------------------------

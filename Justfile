@@ -178,7 +178,9 @@ test_fortran_compilation:
 build_docs:
     uv run \
         --isolated \
+        --python 3.14 \
         --no-editable --with "capytaine[optional,more_visualisation] @ ." --refresh-package="capytaine" \
+        --no-default-groups \
         --group docs \
         -- \
         sh -c ' \

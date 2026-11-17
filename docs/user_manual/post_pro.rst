@@ -103,14 +103,21 @@ arguments to store more information in the dataset:
   (default: all `True`): control whether which of the representations of the
   wave frequency are stored in the dataset. At least one should be included, by
   default they all are.
+
 - :code:`hydrostatics` (default: :code:`True`): tries to compute the
   hydrostatic properties of the ``FloatingBody`` and add them to the dataset.
+
 - :code:`mesh` (default: :code:`False`): stores in the dataset the full mesh for
   the hull and the lid, as well as the dofs.
-  - The hull mesh is stored using the ``hull_face`` dimension in the arrays :code:`mesh_vertices` (shape `(hull_face, 4, 3)`` and :code:`mesh_faces_center` (shape: ``(hull_face, 3)``).
-  - If the body has a lid, it is stored similarly using the ``lid_face`` dimension in the arrays :code:`lid_mesh_vertices` (shape ``(lid_face, 4, 3)`` and :code:`lid_mesh_faces_center` (shape: ``(lid_face, 3)``).
+
+  - The hull mesh is stored using the ``hull_face`` dimension in the arrays :code:`mesh_vertices` (shape ``(hull_face, 4, 3)``) and :code:`mesh_faces_center` (shape: ``(hull_face, 3)``).
+
+  - If the body has a lid, it is stored similarly using the ``lid_face`` dimension in the arrays :code:`lid_mesh_vertices` (shape ``(lid_face, 4, 3)``) and :code:`lid_mesh_faces_center` (shape: ``(lid_face, 3)``).
+
   - If the body has dofs, the array ``dof_motions`` (shape: ``(influenced_dof, hull_face, 3)``) stores the displacement at each face center due to each dof.
+
   - If the dofs have a Jacobian defined (as do rigid body dofs or :class:`~capytaine.bodies.dofs.CustomDof` when setting the ``gradient_of_motion`` parameter), it is stored also in an array of shape ``(influenced_dof, hull_face, 3, 3)``.
+
   - The name of the quadrature scheme used for the mesh is stored as a string in the :code:`quadrature_method` variable.
 
 .. note:: If the body's mesh takes advantage of a planar or rotational
@@ -125,16 +132,17 @@ arguments to store more information in the dataset:
           and are still computed by taking advantage of the symmetry
           internally.
 
-In addition, :code:`fill_dataset` accepts a :code:`keep_details` keyword
-argument (default: :code:`False`), forwarded to :meth:`~capytaine.bem.solver.BEMSolver.solve_all`.
-When set to :code:`True`, the potential, pressure and sources computed for
-each problem are kept and the resulting dataset contains the pressure
-distribution on the hull as the data variables :code:`pressure_diffraction`,
-:code:`pressure_Froude_Krylov` and :code:`pressure_radiation` (with a
-:code:`hull_face` dimension, in the same order as the faces of :code:`body.mesh`)::
+- In addition, :code:`fill_dataset` accepts a :code:`keep_details` keyword
+  argument (default: :code:`False`), forwarded to :meth:`~capytaine.bem.solver.BEMSolver.solve_all`.
+  When set to :code:`True`, the potential, pressure and sources computed for
+  each problem is stored in the dataset:
 
-    dataset = solver.fill_dataset(test_matrix, body, keep_details=True)
-    print(dataset["pressure_diffraction"])
+   - the variables :code:`pressure_diffraction`, :code:`pressure_Froude_Krylov` and :code:`pressure_radiation` contain the pressure on the hull (with a :code:`hull_face` dimension, in the same order as the faces of :code:`body.mesh`).
+     Pressure on the lid has no physical meaning and is not stored in the dataset.
+
+   - if the problems were solved with the indirect solver, the dataset includes the variables ``sources_diffraction`` and ``sources_radiation`` (on the hull, with dimension ``hull_face``) and ``sources_lid_diffraction`` and ``sources_lid_radiation`` (on the lid, if any, with dimension ``lid_face``)
+
+   - with the direct method, the potential is stored instead, as ``potential_diffraction``, ``potential_radiation``, ``potential_lid_diffraction`` and ``potential_lid_radiation``. Results of the direct and indirect methods solved with ``keep_details=True`` cannot be assembled in the same dataset (they can with ``keep_details=False``).
 
 Keeping these details increases the memory usage of the dataset, so this
 option is disabled by default.
@@ -158,7 +166,6 @@ option is disabled by default.
 
 The results can also be collected by :func:`~capytaine.io.xarray.assemble_matrices`, which returns some matrices of :func:`~capytaine.io.xarray.assemble_dataset` as numpy arrays stripped of their metadata.
 This function is meant to be used for teaching, to assemble the matrices without getting the students in contact with ``xarray``.
-
 
 Pressure, velocity, free surface elevation
 ------------------------------------------
@@ -313,27 +320,72 @@ Alternatively, if the ``test_matrix`` of
 Mean drift forces
 -----------------
 
-The horizontal mean drift forces can be computed using the function :func:`~capytaine.post_pro.mean_drift_force.far_field_mean_drift_force`,
+Near-field
+~~~~~~~~~~
+
+The mean drift forces can be computed with :func:`~capytaine.post_pro.mean_drift_force.near_field_mean_drift_force`.
+Here is an example::
+
+    import numpy as np
+    import xarray as xr
+    import capytaine as cpt
+
+    mesh = cpt.mesh_sphere().immersed_part()
+    body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs(), center_of_mass=(0,0,0))
+    solver = cpt.BEMSolver(method='indirect')
+    test_matrix = xr.Dataset(coords={
+                'wavenumber': [1.16, 1.24, 1.39],
+                'wave_direction': [0.0],
+                'radiating_dof': list(body.dofs.keys())
+            })
+    dataset = solver.fill_dataset(test_matrix, body, hydrostatics=True, keep_details=True)
+    first_order_motion = cpt.post_pro.rao(dataset)
+
+    from capytaine.post_pro.mean_drift_force import near_field_mean_drift_force
+    nf_mdf = near_field_mean_drift_force(first_order_motion, dataset, body, solver=solver, output_pressure=False)
+
+The ``dataset`` should have been computed with the ``'indirect'`` method and ``keep_details=True``, such that the source distribution is stored in the dataset allowing first-order quantities to be used in the computation of the mean drift force.
+The force is computed for the frequencies and wave directions common to ``first_order_motion_amplitude`` and ``dataset``, and for the dofs common to them and ``body`` (a warning is logged when some are left out).
+This function returns a dataset with a ``near_field_mean_drift_force`` variable of shape ``(nb_freq, nb_wave_direction, nb_wave_direction, nb_dofs)``.
+
+The implementation supports single rigid body and multiple bodies.
+The expression used for the computation of the mean drift force are generic enough to be used with generalized degrees of freedom, but this use case has not been validated.
+
+Optional parameter ``output_pressure`` allows to return the mean drift pressure field on the hull as ``pressure_hull_mean_drift``, of shape ``(nb_freq, nb_wave_direction, nb_wave_direction, nb_hull_faces)``, as well as the first-order fields on the waterline from which the waterline term of the force is computed: ``pressure_waterline_total`` and ``relative_elevation_waterline``, of shape ``(nb_freq, nb_wave_direction, nb_waterline_segments)``, and the waterline segments ``mesh_waterline``.
+
+Far-field
+~~~~~~~~~
+
+The horizontal mean drift forces can be computed from the Kochin function using
+:func:`~capytaine.post_pro.mean_drift_force.far_field_mean_drift_force`,
 here is an example::
 
     import numpy as np
     import xarray as xr
     import capytaine as cpt
-    from capytaine.post_pro.mean_drift_force import far_field_mean_drift_force
 
     mesh = cpt.mesh_sphere().immersed_part()
     body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs(), center_of_mass=(0,0,0))
-    body.inertia_matrix = body.compute_rigid_body_inertia()
-    body.hydrostatic_stiffness = body.compute_hydrostatic_stiffness()
-    solver = cpt.BEMSolver()
-    k = [1.16, 1.24, 1.39]
-    theta = np.linspace(0, 2*np.pi, 10)
+    solver = cpt.BEMSolver(method='indirect')
     test_matrix = xr.Dataset(coords={
-                'wavenumber': k ,
-                'wave_direction' : 0,
-                'theta': theta,
+                'wavenumber': [1.16, 1.24, 1.39],
+                'wave_direction': [0.0],
+                'theta': np.linspace(-np.pi/8, 2*np.pi, 100),
                 'radiating_dof': list(body.dofs.keys())
             })
     dataset = solver.fill_dataset(test_matrix, body, hydrostatics=True)
-    X = cpt.post_pro.rao(dataset)
-    mean_drift_forces = far_field_mean_drift_force(X, dataset)
+    first_order_motion = cpt.post_pro.rao(dataset)
+
+    from capytaine.post_pro.mean_drift_force import far_field_mean_drift_force
+    ff_mdf = far_field_mean_drift_force(first_order_motion, dataset)
+
+Here we added ``theta`` to the ``test_matrix`` such that the Kochin function is
+automatically included in the dataset.
+The ``'indirect'`` method (default) is required for this.
+The range of ``theta`` should cover both :math:`[0, 2\pi]` and some
+neighborhood of the wave direction of interest (here :math:`[-\pi/8, \pi/8]`).
+
+The output is a dataset with variables ``drift_force_surge``, ``drift_force_sway`` and ``drift_force_yaw``.
+They can be stacked into a single variable with dimension ``influenced_dof``
+like the other forces in Capytaine with
+:func:`~capytaine.post_pro.mean_drift_force._merge_far_field_mean_drift_variables`.
