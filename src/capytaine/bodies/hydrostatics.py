@@ -416,7 +416,7 @@ class _FloatingBodyHydrostaticsMixin(ABC):
             if _is_rigid_body_dof(dof) and not hasattr(dof, "_standard_name"):
                 standard_dir = np.all(np.isclose(dof.direction, np.eye(3)), axis=1)
                 if not np.any(standard_dir):
-                    raise NotImplementedError("Cannot evaluate hydrostatic stiffness for rigid body dof with non-standard directions. "
+                    raise NotImplementedError("Cannot evaluate rigid-body inertia for rigid body dof with non-standard directions. "
                                      f"Got direction: {dof.direction}")
                 if isinstance(dof, TranslationDof) and np.where(standard_dir)[0] == 0:
                     dof._standard_name = "Surge"
@@ -461,7 +461,7 @@ class _FloatingBodyHydrostaticsMixin(ABC):
             [-cog[1], cog[0],  0,       -inertias[5], -inertias[4], inertias[2] ],
         ])
 
-        density = rho if self.mass is None else self.mass/self.volume
+        density = rho if self.mass is None else self.mass/self.mesh.disp_volume
         inertia_matrix = density * volumic_inertia_matrix
 
         standard_rigid_dof_names = ["Surge", "Sway", "Heave", "Roll", "Pitch", "Yaw"]
