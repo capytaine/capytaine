@@ -95,6 +95,8 @@ Bug fixes
 * At infinite frequency, ``Delhommeau(finite_depth_method="legacy", gf_singularities="high_freq")`` now uses the high_freq variant of the Green function, as the other settings do, instead of the low_freq one, which was giving wrong results at this frequency.
   Unsupported combinations of frequency and ``gf_singularities`` now raise a ``NotImplementedError`` instead of returning wrong results. (:pull:`983`)
 
+* Fix wrong inertia matrix for non-neutrally buoyant bodies (when ``mass`` is manually specified by the user) (:issue:`992`, :pull:`994`).
+
 Internals
 ~~~~~~~~~
 
