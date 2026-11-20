@@ -47,6 +47,8 @@ Minor changes
 
 * **Build**:
 
+   * The Fortran core is compiled with OpenMP on macOS, such that the computation of the interaction matrices is parallelized on all platforms. (:pull:`596`)
+
    * Support Pandas 3: remove the upper bound on the version of Pandas. (:issue:`756`, :pull:`982`)
 
    * Build wheels for Linux on aarch64 (ARM64), such as AWS Graviton instances or Linux containers on Apple Silicon Macs. (:pull:`986`)
@@ -94,6 +96,8 @@ Bug fixes
 
 * At infinite frequency, ``Delhommeau(finite_depth_method="legacy", gf_singularities="high_freq")`` now uses the high_freq variant of the Green function, as the other settings do, instead of the low_freq one, which was giving wrong results at this frequency.
   Unsupported combinations of frequency and ``gf_singularities`` now raise a ``NotImplementedError`` instead of returning wrong results. (:pull:`983`)
+
+* Fix wrong inertia matrix for non-neutrally buoyant bodies (when ``mass`` is manually specified by the user) (:issue:`992`, :pull:`994`).
 
 Internals
 ~~~~~~~~~
