@@ -3,17 +3,16 @@ Installation for users
 ======================
 
 Capytaine requires Python 3.8 or higher.
-It is regularly tested on Windows, MacOS and Linux using `all currently supported version of Python <https://devguide.python.org/versions/>`_
 
-Precompiled packages are distributed on `PyPI <https://pypi.org/project/capytaine/>`_ and `Conda-forge <https://conda-forge.org/>`_ for Windows, MacOS (both Intel and ARM processors) and Linux for all supported versions of Python.
-However, it might take a few weeks before precompiled packages for the latest version of Python (3.13 at the time of writing) are available and you might prefer using an earlier version of Python.
+Precompiled packages are distributed on `PyPI <https://pypi.org/project/capytaine/>`_ and `Conda-forge <https://conda-forge.org/>`_ for Windows, MacOS (both Intel and ARM processors) and Linux for `all currently supported version of Python <https://devguide.python.org/versions/>`_.
+However, it might take a few weeks before precompiled packages for the latest version of Python are available and you might prefer using an earlier version of Python.
 
 Capytaine is not tested on the `free-threaded versions of Python <https://docs.python.org/3/howto/free-threading-python.html>`_, only on the standard version.
 
 On a cloud platform
 -------------------
 
-For a quick try of Capytaine without installing anything on your computer, you can use an online Python-based computing environment such as `CoCalc <https://cocalc.com/>`_, on which Capytaine is already installed by default, or `Google Colab <https://colab.research.google.com/>`_.
+For a quick try of Capytaine without installing anything on your computer, you can use an online Python-based computing environment such as `CoCalc <https://cocalc.com/>`_ or `Google Colab <https://colab.research.google.com/>`_.
 On such a `Jupyter <https://jupyter.org/>`_-based environment, Capytaine can be installed by running the following command in a cell::
 
     %pip install capytaine
@@ -30,7 +29,7 @@ All the core feature of Capytaine are accessible from such a Jupyter-based envir
 Locally with the `uv` package manager
 -------------------------------------
 
-As of 2025, the best compromise between ease-of-use, speed and flexibility to install Capytaine on your machine is to use the `uv <https://docs.astral.sh/uv/>`_ package manager.
+As of 2026, the best compromise between ease-of-use, speed and flexibility to install Capytaine on your machine is to use the `uv <https://docs.astral.sh/uv/>`_ package manager.
 Once you have installed `uv`, run the following command to run a file script::
 
     uv run --with capytaine --script path/to/my_script.py
@@ -54,7 +53,7 @@ Execute the following Python code to check that Capytaine is correctly installed
 
 More optional dependencies can be specified, as well as specific versions of capytaine::
 
-    uv run --with "capytaine==2.1" --with matplotlib --with meshio --script path/to/my_script.py
+    uv run --with "capytaine==2.3.1" --with matplotlib --with meshio --script path/to/my_script.py
 
 The following optional dependencies can be used together with Capytaine.
 
