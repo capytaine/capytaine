@@ -68,6 +68,11 @@ Capytaine: a Python-based linear potential flow BEM solver
    .. container:: version-tab version-tab-active
 
       v\ |release| (current)
+
+   .. container:: version-tab
+
+      `v3.0.0 <https://capytaine.github.io/v3.0.0>`_
+
    .. container:: version-tab
 
       `v2.3.1 <https://capytaine.github.io/v2.3.1>`_
