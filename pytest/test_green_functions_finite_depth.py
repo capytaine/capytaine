@@ -32,11 +32,11 @@ def test_deep_water_asymptotics_of_wave_terms_low_freq(derivative_with_respect_t
     k = 1.0
     depth = 1000.0
     s_inf, k_inf = gf.fortran_core.green_wave.integral_of_wave_part_infinite_depth(
-        face.faces_centers[0, :], face.faces_centers[0, :], face.faces_areas[0], face.quadrature_points[0][0, :, :], face.quadrature_points[1][0],
+        face.faces_centers[0, :], face.faces_centers[0, :], face.faces_normals[0, :], face.faces_areas[0], face.faces_radiuses[0], face.quadrature_points[0][0, :, :], face.quadrature_points[1][0],
         k, *gf.all_tabulation_parameters, gf_singularities_index, derivative_with_respect_to_first_variable
     )
     s_finite, k_finite = gf.fortran_core.green_wave.integral_of_wave_parts_finite_depth(
-        face.faces_centers[0, :], face.faces_centers[0, :], face.faces_areas[0], face.quadrature_points[0][0, :, :], face.quadrature_points[1][0],
+        face.faces_centers[0, :], face.faces_centers[0, :], face.faces_normals[0, :], face.faces_areas[0], face.faces_radiuses[0], face.quadrature_points[0][0, :, :], face.quadrature_points[1][0],
         k, depth, *gf.all_tabulation_parameters, gf_singularities_index, derivative_with_respect_to_first_variable
     )
     np.testing.assert_allclose(s_inf, s_finite, rtol=1e-2)
@@ -52,11 +52,11 @@ def test_deep_water_asymptotics_of_wave_terms_high_freq(derivative_with_respect_
     k = 1.0
     depth = 1000.0
     s_inf, k_inf = gf.fortran_core.green_wave.integral_of_wave_part_infinite_depth(
-        face.faces_centers[0, :], face.faces_centers[0, :], face.faces_areas[0], face.quadrature_points[0][0, :, :], face.quadrature_points[1][0],
+        face.faces_centers[0, :], face.faces_centers[0, :], face.faces_normals[0, :], face.faces_areas[0], face.faces_radiuses[0], face.quadrature_points[0][0, :, :], face.quadrature_points[1][0],
         k, *gf.all_tabulation_parameters, gf_singularities_index, derivative_with_respect_to_first_variable
     )
     s_finite, k_finite = gf.fortran_core.green_wave.integral_of_wave_parts_finite_depth(
-        face.faces_centers[0, :], face.faces_centers[0, :], face.faces_areas[0], face.quadrature_points[0][0, :, :], face.quadrature_points[1][0],
+        face.faces_centers[0, :], face.faces_centers[0, :], face.faces_normals[0, :], face.faces_areas[0], face.faces_radiuses[0], face.quadrature_points[0][0, :, :], face.quadrature_points[1][0],
         k, depth, *gf.all_tabulation_parameters, gf_singularities_index, derivative_with_respect_to_first_variable
     )
     np.testing.assert_allclose(s_inf, s_finite, rtol=1e-2)

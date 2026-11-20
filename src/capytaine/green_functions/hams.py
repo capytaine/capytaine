@@ -50,7 +50,6 @@ class LiangWuNoblesseGF(AbstractGreenFunction):
             self, mesh1, mesh2, *,
             free_surface=0.0, water_depth=np.inf, wavenumber,
             adjoint_double_layer=True, early_dot_product=True,
-            diagonal_term_in_double_layer=True,
             ):
 
         if free_surface == np.inf or water_depth < np.inf:
@@ -80,11 +79,6 @@ class LiangWuNoblesseGF(AbstractGreenFunction):
             gf_singularities_index, adjoint_double_layer,
             S, K
         )
-
-        if diagonal_term_in_double_layer:
-            self.fortran_core.matrices.add_diagonal_term(
-                    mesh2.faces_centers, early_dot_product_normals, free_surface, K,
-                    )
 
         if np.any(np.isnan(S)) or np.any(np.isnan(K)):
             raise GreenFunctionEvaluationError(
@@ -143,7 +137,6 @@ class FinGreen3D(AbstractGreenFunction):
             self, mesh1, mesh2, *,
             free_surface=0.0, water_depth=np.inf, wavenumber,
             adjoint_double_layer=True, early_dot_product=True,
-            diagonal_term_in_double_layer=True,
             ):
 
         if free_surface == np.inf or water_depth == np.inf:
@@ -176,11 +169,6 @@ class FinGreen3D(AbstractGreenFunction):
             self.gf_singularities_index, adjoint_double_layer,
             S, K
         )
-
-        if diagonal_term_in_double_layer:
-            self.fortran_core.matrices.add_diagonal_term(
-                    mesh2.faces_centers, early_dot_product_normals, free_surface, K,
-                    )
 
         if np.any(np.isnan(S)) or np.any(np.isnan(K)):
             raise GreenFunctionEvaluationError(

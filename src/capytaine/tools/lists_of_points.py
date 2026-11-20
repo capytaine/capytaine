@@ -16,18 +16,12 @@ from capytaine.bodies.abstract_bodies import AbstractBody
 from capytaine.meshes.abstract_meshes import AbstractMesh
 
 
-def _normalize_points(points, keep_mesh=False):
+def _normalize_points(points):
     if isinstance(points, AbstractBody):
-        if keep_mesh:
-            return points.mesh, (points.mesh.nb_faces,)
-        else:
-            return points.mesh.faces_centers, (points.mesh.nb_faces,)
+        return points.mesh.faces_centers, (points.mesh.nb_faces,)
 
     if isinstance(points, AbstractMesh):
-        if keep_mesh:
-            return points, (points.nb_faces,)
-        else:
-            return points.faces_centers, (points.nb_faces,)
+        return points.faces_centers, (points.nb_faces,)
 
     points = np.asarray(points)
 
@@ -49,14 +43,8 @@ def _normalize_points(points, keep_mesh=False):
 
     return points, output_shape
 
-def _normalize_free_surface_points(points, keep_mesh=False):
-    if keep_mesh and isinstance(points, AbstractBody):
-        return points.mesh, (points.mesh.nb_faces,)
-
-    if keep_mesh and isinstance(points, AbstractMesh):
-        return points, (points.nb_faces,)
-
-    points, output_shape = _normalize_points(points, keep_mesh)
+def _normalize_free_surface_points(points):
+    points, output_shape = _normalize_points(points)
 
     if points.ndim == 2 and points.shape[1] == 2:  # Only x and y have been provided
         points = np.concatenate([points, np.zeros((points.shape[0], 1))], axis=1)

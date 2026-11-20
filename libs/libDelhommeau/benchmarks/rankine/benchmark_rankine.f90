@@ -49,6 +49,7 @@ do i_sample = 1, n_samples
         face_nodes, face_center, face_normal,      &
         face_area, face_radius,                    &
         derivative_with_respect_to_first_variable, &
+        1.0_pre,                                   &
         S(i_sample), VS(:, i_sample)               &
     )
 enddo

@@ -44,6 +44,7 @@ contains
 
     ! Local
     real(kind=pre) :: r0
+    real(kind=pre) :: limit_side
 
     r0 = norm2(M(1:3) - face_center(1:3))
 
@@ -54,11 +55,17 @@ contains
         derivative_with_respect_to_first_variable, &
         int_G, int_nabla_G)
     else
+      if (derivative_with_respect_to_first_variable) then
+        limit_side = ONE
+      else
+        limit_side = -ONE
+      endif
       call exact_integral_of_Rankine               &
         (M,                                        &
         face_nodes, face_center, face_normal,      &
         face_area, face_radius,                    &
         derivative_with_respect_to_first_variable, &
+        limit_side,                                &
         int_G, int_nabla_G)
     end if
   end subroutine
@@ -70,6 +77,7 @@ contains
       face_nodes, face_center, face_normal,      &
       face_area, face_radius,                    &
       derivative_with_respect_to_first_variable, &
+      limit_side,                                &
       int_G, int_nabla_G)
     ! Estimate the integral S0 = ∫∫ 1/MM' dS(M') over a face
     ! and its derivative VS0 with respect to M.
@@ -77,12 +85,21 @@ contains
     ! Based on formulas A6.1 and A6.3 (p. 381 to 383)
     ! in G. Delhommeau thesis (referenced below as [Del]).
 
+    ! The gradient is discontinuous across the face: when M crosses the face, its normal component jumps by
+    ! -4π (the jump of the single layer potential). When M is in the plane of the face (|GZ| < 1e-4*face_radius),
+    ! limit_side selects the returned value:
+    !   limit_side =  0: principal value (no jump term),
+    !   limit_side = +1: limit when M approaches the face from the side of face_normal,
+    !   limit_side = -1: limit when M approaches the face from the other side.
+    ! The jump term is added wherever M lies on the face.
+
     ! Inputs
     real(kind=pre), dimension(3),    intent(in) :: M
     real(kind=pre), dimension(4, 3), intent(in) :: face_nodes
     real(kind=pre), dimension(3),    intent(in) :: face_center, face_normal
     real(kind=pre),                  intent(in) :: face_area, face_radius
     logical,                         intent(in) :: derivative_with_respect_to_first_variable
+    real(kind=pre),                  intent(in) :: limit_side
 
     ! Outputs
     real(kind=pre),               intent(out) :: int_G
@@ -93,7 +110,7 @@ contains
     real(kind=pre)                  :: GZ, DK, GY
     real(kind=pre), dimension(4)    :: RR
     real(kind=pre), dimension(3, 4) :: DRX
-    real(kind=pre)                  :: ANT, DNT, ANL, DNL, ALDEN, AT
+    real(kind=pre)                  :: ANT, DNT, ANL, DNL, ALDEN, AT, AT_side
     real(kind=pre), dimension(3)    :: PJ, GYX, ANTX, ANLX, DNTX
 
     GZ = dot_product(M(1:3) - face_center(1:3), face_normal(1:3)) ! Called Z in [Del]
@@ -124,8 +141,19 @@ contains
 
         if (abs(GZ) >= real(1e-4, PRE)*face_radius) then
           AT = atan(ANT/DNT)
+          AT_side = sign(ONE, GZ)
+        else if ((limit_side /= ZERO) .and. (abs(GY) > real(1e-8, PRE)*face_radius)) then
+          ! In the plane of the face, one-sided limit.
+          ! The sum over the edges of atan(ANT/DNT) is half the solid angle under which the face is seen from M:
+          ! π inside the face, 0 outside (e.g. on a coplanar neighboring face), π/2 on an edge.
+          AT = atan(ANT/DNT)
+          AT_side = limit_side
         else
-          AT = 0.
+          ! In the plane of the face, principal value.
+          ! (Or |GY| small: M is on the line of the edge. Outside of the edge, the term is zero. On the edge, it is ±π/2
+          ! depending on the side from which M approaches the edge: zero is their mean and gives π/2 in total.)
+          AT = ZERO
+          AT_side = ZERO
         endif
 
         ANLX(:) = DRX(:, NEXT_NODE(L)) + DRX(:, L)                    ! Called N^l_k_{x,y,z} in [Del]
@@ -145,7 +173,7 @@ contains
         end if
 
         int_nabla_G(:) = int_nabla_G(:) + ALDEN*GYX(:) &
-          - 2*sign(ONE, GZ)*AT*face_normal(:)          &
+          - 2*AT_side*AT*face_normal(:)                &
           + GY*(DNL-ANL)/(ANL*DNL)*ANLX(:)             &
           - 2*abs(GZ)*(ANTX(:)*DNT - DNTX(:)*ANT)/(ANT*ANT+DNT*DNT)
       end if
@@ -267,6 +295,7 @@ contains
 
     ! local
     real(kind=pre), dimension(3)              :: reflected_M
+    real(kind=pre)                            :: reflected_side, n_dot_Rn
 
     reflected_M(1:2) = M(1:2)
     reflected_M(3)   = reflection_coefs(1) * M(3) + reflection_coefs(2)
@@ -275,12 +304,22 @@ contains
     ! reflection_coefs = [-1.0, 0.0] for free surface symmetry
     ! reflection_coefs = [-1.0, -2*h] for sea bottom symmetry
 
+    ! reflected_side only matters when reflected_M lies on the face, that is in practice for a face on the plane
+    ! of symmetry (n = ±e_z). Elsewhere, it is ignored by exact_integral_of_Rankine.
+    if (derivative_with_respect_to_first_variable) then
+      n_dot_Rn = face_normal(1)**2 + face_normal(2)**2 + reflection_coefs(1)*face_normal(3)**2
+      reflected_side = sign(ONE, n_dot_Rn)
+    else
+      reflected_side = -ONE
+    end if
+
     call exact_integral_of_Rankine &
       (reflected_M,                &
       face_nodes, face_center,     &
       face_normal, face_area,      &
       face_radius,                 &
       .true.,                      &
+      reflected_side,              &
       int_g, int_nabla_g)
 
     ! If we mirrored M, we mirror the gradient

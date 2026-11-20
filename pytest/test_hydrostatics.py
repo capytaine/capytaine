@@ -735,21 +735,26 @@ def test_non_neutrally_buoyant_stiffness_invariance_by_translation():
     K2 = body.translated([1.0, 0.0, 0.0]).compute_hydrostatic_stiffness()
     assert np.allclose(K1, K2)
 
-def test_non_neutrally_buoyant_inertia():
+@pytest.mark.parametrize("radius", [0.5, 1.0])
+@pytest.mark.parametrize("length", [0.5, 1.0])
+@pytest.mark.parametrize("mass", [500.0, 1000.0])
+def test_non_neutrally_buoyant_inertia(radius, length, mass):
     mesh = mesh_vertical_cylinder(
-        radius=1.0,
-        length=1.0,
-        center=(0.0, 0.0, -0.5),
+        radius=radius,
+        length=length,
+        center=(0.0, 0.0, 0.0),
         resolution=(20, 40, 20)
     )
     body = cpt.FloatingBody(
             mesh=mesh,
             dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, 0)),
-            mass = 500 * mesh.disp_volume,
-            center_of_mass = (0.0, 0.0, -0.25),
+            mass=mass,
+            center_of_mass=(0.0, 0.0, -0.25),
             )
     M = body.compute_rigid_body_inertia().values
-    assert np.allclose(np.diag(M), np.array([1570, 1570, 1570, 936, 936, 801]), rtol=5e-2)
+    analytical_Ixy = 1/12 * mass * (3*radius**2 + length**2)
+    analytical_Iz = 1/2 * mass * radius**2
+    assert np.allclose(np.diag(M), np.array([mass, mass, mass, analytical_Ixy, analytical_Ixy, analytical_Iz]), rtol=5e-2)
 
 def test_non_neutrally_buoyant_inertia_invariance_by_translation():
     body = non_neutrally_buoyant_body()

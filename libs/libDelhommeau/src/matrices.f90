@@ -64,6 +64,11 @@ contains
     ! Solver parameters
     integer,                                  intent(in) :: gf_singularities
     logical,                                  intent(in) :: adjoint_double_layer
+    ! Where a collocation point lies on a face, the ½ self-influence term is included
+    ! (see integral_of_Rankine). Faces on the free surface (low_freq or high_freq) or on the sea bottom
+    ! (Delhommeau's finite depth) get 1 instead of ½, from the jump of the reflected Rankine term
+    ! (see exact_integral_of_reflected_Rankine), or, with high_freq at infinite frequency, from the limit of the wave part
+    ! (see integral_of_high_freq_singularity_on_free_surface).
 
     real(kind=pre),                           intent(in) :: wavenumber, depth
 
@@ -85,11 +90,11 @@ contains
     ! Local variables
     integer                         :: I, J
     real(kind=pre)                  :: sign_reflected_Rankine
-    real(kind=pre)                  :: int_G_rankine, diagonal_coef
+    real(kind=pre)                  :: int_G_rankine
     real(kind=pre), dimension(3)    :: int_nablaG_rankine
     complex(kind=pre)               :: int_G, int_G_wave
     complex(kind=pre), dimension(3) :: int_nablaG, int_nablaG_wave
-    logical :: derivative_with_respect_to_first_variable, finite_depth, finite_wavenumber
+    logical :: derivative_with_respect_to_first_variable, finite_depth
 
     derivative_with_respect_to_first_variable = adjoint_double_layer
     ! When computing the adjoint double layer operator (K), the derivative of the Green function is computed with respect to its
@@ -99,8 +104,6 @@ contains
 
     finite_depth = (.not. is_infinity(depth))
 
-    finite_wavenumber = ((ZERO < wavenumber) .and. (.not. is_infinity(wavenumber)))
-
     if (gf_singularities == HIGH_FREQ) then
       sign_reflected_Rankine = -ONE
     else
@@ -108,7 +111,7 @@ contains
     endif
 
     !$OMP PARALLEL DO SCHEDULE(DYNAMIC) &
-    !$OMP&  PRIVATE(J, I, int_G, int_nablaG, int_G_Rankine, int_nablaG_Rankine, diagonal_coef, &
+    !$OMP&  PRIVATE(J, I, int_G, int_nablaG, int_G_Rankine, int_nablaG_Rankine, &
     !$OMP&          int_G_wave, int_nablaG_wave)
     do J = 1, nb_faces
       do I = 1, nb_collocation_points
@@ -149,6 +152,8 @@ contains
             int_G_Rankine,                              &
             int_nablaG_Rankine                          &
           )
+          ! The one-point approximation has no jump term: faces on the free surface are not supported
+          ! (they get the coefficient ½ of the direct Rankine term instead of 1).
         else
           call integral_of_reflected_Rankine(          &
             collocation_points(I, :),                  &
@@ -175,23 +180,19 @@ contains
           !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
           !  Infinite depth wave part  !
           !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-          if (finite_wavenumber) then
-            call integral_of_wave_part_infinite_depth                    &
-              (collocation_points(I, :),                                 &
-              centers(J, :), areas(J),                                   &
-              quad_points(J, :, :), quad_weights(J, :),                  &
-              wavenumber,                                                &
-              tabulation_nb_integration_points, tabulation_grid_shape,   &
-              tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-              gf_singularities,                                          &
-              derivative_with_respect_to_first_variable,                 &
-              int_G_wave, int_nablaG_wave                                &
-              )
-              int_G = int_G + int_G_wave
-              int_nablaG(:) = int_nablaG(:) + int_nablaG_wave(:)
-          ! else zero, assuming gf_singularities has been set up correctly, that is
-          ! low_freq for wavenumber = 0 and high_freq for wavenumber = inf
-          endif
+          call integral_of_wave_part_infinite_depth                    &
+            (collocation_points(I, :),                                 &
+            centers(J, :), normals(J, :), areas(J), radiuses(J),       &
+            quad_points(J, :, :), quad_weights(J, :),                  &
+            wavenumber,                                                &
+            tabulation_nb_integration_points, tabulation_grid_shape,   &
+            tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+            gf_singularities,                                          &
+            derivative_with_respect_to_first_variable,                 &
+            int_G_wave, int_nablaG_wave                                &
+            )
+          int_G = int_G + int_G_wave
+          int_nablaG(:) = int_nablaG(:) + int_nablaG_wave(:)
 
         else  ! Finite depth
 
@@ -270,23 +271,19 @@ contains
             !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             !  Delhommeau's finite depth wave term  !
             !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            if (finite_wavenumber) then
-              call integral_of_wave_parts_finite_depth                     &
-                (collocation_points(I, :),                                 &
-                centers(J, :), areas(J),                                   &
-                quad_points(J, :, :), quad_weights(J, :),                  &
-                wavenumber, depth,                                         &
-                tabulation_nb_integration_points, tabulation_grid_shape,   &
-                tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-                gf_singularities,                                          &
-                derivative_with_respect_to_first_variable,                 &
-                int_G_wave, int_nablaG_wave                                &
-                )
-              int_G = int_G + int_G_wave
-              int_nablaG(:) = int_nablaG(:) + int_nablaG_wave(:)
-            ! else zero, assuming gf_singularities has been set up correctly, that is
-            ! low_freq for wavenumber = 0 and high_freq for wavenumber = inf
-            endif
+            call integral_of_wave_parts_finite_depth                     &
+              (collocation_points(I, :),                                 &
+              centers(J, :), normals(J, :), areas(J), radiuses(J),       &
+              quad_points(J, :, :), quad_weights(J, :),                  &
+              wavenumber, depth,                                         &
+              tabulation_nb_integration_points, tabulation_grid_shape,   &
+              tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+              gf_singularities,                                          &
+              derivative_with_respect_to_first_variable,                 &
+              int_G_wave, int_nablaG_wave                                &
+              )
+            int_G = int_G + int_G_wave
+            int_nablaG(:) = int_nablaG(:) + int_nablaG_wave(:)
 
             call integral_of_prony_decomp_finite_depth        &
               (collocation_points(I, :),                      &
@@ -322,45 +319,6 @@ contains
 
       end do  ! loop on I
     end do  ! parallelized loop on J
-  end subroutine
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-  subroutine add_diagonal_term(                               &
-      centers, dot_product_normals, free_surface, K &
-      )
-
-    real(kind=pre), dimension(:, :), intent(in)        :: centers
-    real(kind=pre), dimension(:, :), intent(in)        :: dot_product_normals
-    real(kind=pre),                         intent(in) :: free_surface
-    complex(kind=pre), dimension(:, :, :),  intent(inout) :: K
-
-    ! Local variables
-    integer        :: n, m
-    integer        :: i
-    real(kind=pre) :: diagonal_coef
-
-    n = size(K, 2)
-    m = size(K, 3)
-
-    !$OMP PARALLEL DO PRIVATE(i, diagonal_coef)
-    do i = 1, min(n, m)
-      if (abs(centers(i, 3) - free_surface) < 1e-8) then  ! Panel on the free surface
-        diagonal_coef = ONE
-      else
-        diagonal_coef = ONE/2
-      endif
-
-      if (size(K, 1) == 1) then  ! early_dot_product=True
-        K(1, i, i) = K(1, i, i) + diagonal_coef
-      else
-        K(:, i, i) = K(:, i, i) + diagonal_coef * dot_product_normals(i, :)
-        ! if (.not. adjoint_double_layer) then we should have used the jth normal instead of the i-th,
-        ! such that later the dot product with dot_product_normals(j, :) gives 1.
-        ! Except that on the diagonal, i==j, so there is no need to branch based on adjoint_double_layer.
-      endif
-    enddo
-
   end subroutine
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
