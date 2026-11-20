@@ -72,10 +72,20 @@ configure_file(
   install_dir: py3.get_install_dir(pure: false) / 'capytaine',
 )
 
-if build_machine.system() == 'darwin'
-  omp = []  # Waiting for https://github.com/mesonbuild/meson/issues/7435
+if host_machine.system() == 'darwin'
+  # Meson's OpenMP dependency is detected with the C compiler, that is Apple
+  # Clang on macOS, which does not support `-fopenmp` out of the box
+  # (https://github.com/mesonbuild/meson/issues/7435).
+  # Since OpenMP is only used in the Fortran code, the flag is set for gfortran
+  # only. The extension modules are linked by the C compiler (with gfortran's
+  # library directories), hence `-lgomp` instead of `-fopenmp` for the linker.
+  omp = []
+  omp_fortran_args = ['-fopenmp']
+  omp_link_args = ['-lgomp']
 else
   omp = dependency('openmp')
+  omp_fortran_args = []
+  omp_link_args = []
 endif
 
 if get_option('hams_green_function').allowed()
@@ -89,8 +99,8 @@ else
   optional_dependencies_flags = []
 endif
 
-args = ['-cpp']
-link_args = host_machine.system() == 'windows' ? ['-lquadmath'] : []  # Required for the Windows build with cibuildwheel
+args = ['-cpp'] + omp_fortran_args
+link_args = (host_machine.system() == 'windows' ? ['-lquadmath'] : []) + omp_link_args  # -lquadmath is required for the Windows build with cibuildwheel
 deps = [py3_dep, omp]
 
 py3.extension_module('Delhommeau_float32',
