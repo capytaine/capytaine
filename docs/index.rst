@@ -106,9 +106,9 @@ Capytaine: a Python-based linear potential flow BEM solver
 
    .. container:: doc-box
 
-      .. rubric:: Validation tests
+      .. rubric:: :doc:`Validation tests <validation>`
 
-      Validation results on several geometries
+      Comparison with other BEM solvers on several geometries.
 
    .. container:: doc-box
 
@@ -196,7 +196,18 @@ For free community support, ask on the `Github discussion page <https://github.c
    :maxdepth: 1
    :hidden:
 
+   validation.rst
+
+.. toctree::
+   :maxdepth: 1
+   :hidden:
+
    citing.rst
+
+.. toctree::
+   :maxdepth: 1
+   :hidden:
+
    changelog.rst
 
 .. container:: homepage-footer
