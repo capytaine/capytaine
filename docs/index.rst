@@ -53,7 +53,7 @@ Capytaine: a Python-based linear potential flow BEM solver
 
       .. rubric:: 21st century computing
 
-      Experimenting with modern scientific computing: check our prototype GPU backend for 20x speedup.
+      Experimenting with modern scientific computing: stay tuned for the release of our GPU backend.
 
 .. container:: philosophy-footer
 
