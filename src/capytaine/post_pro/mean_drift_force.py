@@ -36,22 +36,34 @@ LOG = logging.getLogger(__name__)
 # Far field
 ####################################################################################################
 
-def far_field_mean_drift_force(X, dataset):
-    """Compute the mean drift forces using far field formulation.
-    Note that the forces are proportional to the square of the wave amplitude, but this implementation
-    does not take into account the wave amplitude.
+def compute_far_field_mean_drift_force(dataset, *, rao):
+    """Compute the horizontal mean drift force using the far field formulation.
+
+    The force is computed from the Kochin functions of the diffracted and radiated waves.
+    Only the horizontal components (surge, sway and yaw) are available.
 
     Parameters
     ----------
-    X : xarray DataArray
-        The motion RAO.
     dataset : xarray Dataset
-        This function supposes that variables named 'kochin_diffraction' and 'kochin_radiation' are in the dataset.
+        The dataset of the diffraction and radiation results, including the Kochin functions
+        ``kochin_diffraction`` and ``kochin_radiation`` (computed when ``theta`` is in the test matrix).
+        The range of ``theta`` should cover [0, 2pi], and strictly include the wave directions.
+    rao : xarray DataArray
+        The complex motion amplitude of the body per unit wave amplitude,
+        as returned by :func:`capytaine.post_pro.rao.rao`.
+        The frequency should be its first dimension.
 
     Returns
     -------
     xarray Dataset
-        The horizontal mean drift forces, depending on omega and the wave direction.
+        A dataset with a ``mean_drift_force_far_field`` variable of dimensions
+        ``(freq, wave_direction, other_wave_direction, influenced_dof)``,
+        where ``freq`` is the frequency dimension of ``rao`` and ``influenced_dof`` is
+        ``["Surge", "Sway", "Yaw"]``.
+        It follows the same convention as :func:`compute_near_field_mean_drift_force`:
+        it is Hermitian in the two wave directions, and the term of the pair of waves
+        ``(wave_direction=k, other_wave_direction=l)`` is multiplied by ``a_k conj(a_l)``,
+        where ``a_k`` is the complex amplitude of the wave ``k``.
     """
     omega = dataset['omega']
     m = dataset['wavenumber']
@@ -70,7 +82,7 @@ def far_field_mean_drift_force(X, dataset):
     if np.any(beta == theta_range.min()) or np.any(beta == theta_range.max()):
         raise ValueError("The wave direction should not be at the border of the theta interval, it is recommended to extend the theta interval")
 
-    H_rad_tot = sum(H_rad.sel(radiating_dof=d)*X.sel(radiating_dof=d) for d in X.radiating_dof)
+    H_rad_tot = sum(H_rad.sel(radiating_dof=d)*rao.sel(radiating_dof=d) for d in rao.radiating_dof)
     H_tot = np.exp(1j*np.pi/2)*(H_diff + H_rad_tot)
 
     H_beta = H_tot.interp(theta=beta.values)
@@ -84,15 +96,15 @@ def far_field_mean_drift_force(X, dataset):
         k0 = omega**2/g
         coef2 = 2*np.pi*rho*m*(k0*h)**2 / (h*((m*h)**2 - (k0*h)**2 + k0*h))
 
-    dims = [X.dims[0], "wave_direction_k", "wave_direction_l"]
+    dims = [rao.dims[0], "wave_direction", "other_wave_direction"]
     coords = {
-        X.dims[0]: X.coords[X.dims[0]].values,
-        "wave_direction_k": X.coords["wave_direction"].values,
-        "wave_direction_l": X.coords["wave_direction"].values,
+        rao.dims[0]: rao.coords[rao.dims[0]].values,
+        "wave_direction": rao.coords["wave_direction"].values,
+        "other_wave_direction": rao.coords["wave_direction"].values,
     }
 
-    freq = X.sizes[X.dims[0]]
-    nb_dir = X.sizes["wave_direction"]
+    freq = rao.sizes[rao.dims[0]]
+    nb_dir = rao.sizes["wave_direction"]
     data_x = np.full((freq, nb_dir, nb_dir), np.nan + 1j*np.nan, dtype=complex)
     data_y = np.full((freq, nb_dir, nb_dir), np.nan + 1j*np.nan, dtype=complex)
     data_z = np.full((freq, nb_dir, nb_dir), np.nan + 1j*np.nan, dtype=complex)
@@ -116,83 +128,88 @@ def far_field_mean_drift_force(X, dataset):
                                - coef2/m * ((np.conjugate(hk) * hl_derivative - hl * np.conjugate(hk_derivative)) / (2*1j)).integrate("theta"))
             data_z[:, l, k] = np.conjugate(data_z[:, k, l])
 
-    Fx = xr.DataArray(
-        data=data_x,
-        dims=dims,
-        coords=coords,
-        name='drift_force_surge'
+    force = xr.DataArray(
+        data=np.stack([data_x, data_y, data_z], axis=-1),
+        dims=[*dims, "influenced_dof"],
+        coords={**coords, "influenced_dof": ["Surge", "Sway", "Yaw"]},
         )
-
-    Fy = xr.DataArray(
-        data=data_y,
-        coords=coords,
-        dims=dims,
-        name='drift_force_sway'
-        )
-
-    Mz = xr.DataArray(
-        data=data_z,
-        coords=coords,
-        dims=dims,
-        name='drift_force_yaw'
-        )
-    return xr.Dataset({Fx.name: Fx, Fy.name: Fy, Mz.name: Mz})
+    return xr.Dataset({"mean_drift_force_far_field": force})
 
 
-def _merge_far_field_mean_drift_variables(dataset):
-    """Merge the three drift force components into a single variable with an influenced_dof dimension.
+_LEGACY_FAR_FIELD_VARIABLES = {"Surge": "drift_force_surge", "Sway": "drift_force_sway", "Yaw": "drift_force_yaw"}
+_LEGACY_FAR_FIELD_DIMS = {"wave_direction": "wave_direction_k", "other_wave_direction": "wave_direction_l"}
+
+
+def far_field_mean_drift_force(X, dataset):
+    """Deprecated alias of :func:`compute_far_field_mean_drift_force`, with the output format of Capytaine 3.0.
 
     Parameters
     ----------
+    X : xarray DataArray
+        The motion RAO.
     dataset : xarray Dataset
-        The dataset returned by far_field_mean_drift_force, containing 'drift_force_surge',
-        'drift_force_sway', and 'drift_force_yaw' variables.
+        This function supposes that variables named 'kochin_diffraction' and 'kochin_radiation' are in the dataset.
 
     Returns
     -------
     xarray Dataset
-        A dataset with a single 'drift_force' variable having an additional 'influenced_dof' dimension
-        with coordinates ["Surge", "Sway", "Yaw"].
+        A dataset with the variables ``drift_force_surge``, ``drift_force_sway`` and ``drift_force_yaw``,
+        of dimensions ``(freq, wave_direction_k, wave_direction_l)``.
     """
-    # Stack the three force components along a new dimension
-    drift_force = xr.concat(
-        [dataset['drift_force_surge'], dataset['drift_force_sway'], dataset['drift_force_yaw']],
-        dim=xr.DataArray(['Surge', 'Sway', 'Yaw'], dims=['influenced_dof'], name='influenced_dof')
-    )
-    drift_force.name = 'drift_force'
+    LOG.warning("Deprecation warning: `far_field_mean_drift_force` is deprecated, "
+                "please use `compute_far_field_mean_drift_force`, which returns a single variable "
+                "`mean_drift_force_far_field` with the dimensions `wave_direction`, `other_wave_direction` and `influenced_dof`.")
+    force = compute_far_field_mean_drift_force(dataset, rao=X)["mean_drift_force_far_field"]
+    force = force.rename(_LEGACY_FAR_FIELD_DIMS)
+    return xr.Dataset({name: force.sel(influenced_dof=dof, drop=True).rename(name)
+                       for dof, name in _LEGACY_FAR_FIELD_VARIABLES.items()})
 
-    return xr.Dataset({'drift_force': drift_force})
+
+def _far_field_mean_drift_force_from_legacy_variables(dataset):
+    """Inverse of the formatting of `far_field_mean_drift_force`: the variables `drift_force_surge`,
+    `drift_force_sway` and `drift_force_yaw` merged into a DataArray in the format of
+    `compute_far_field_mean_drift_force`, for datasets computed with Capytaine 3.0."""
+    force = xr.concat(
+        [dataset[name] for name in _LEGACY_FAR_FIELD_VARIABLES.values()],
+        dim=xr.DataArray(list(_LEGACY_FAR_FIELD_VARIABLES), dims=["influenced_dof"], name="influenced_dof"),
+    )
+    force = force.transpose(..., "influenced_dof")
+    return force.rename({v: k for k, v in _LEGACY_FAR_FIELD_DIMS.items()}).rename("mean_drift_force_far_field")
 
 
 ####################################################################################################
 # Near field
 ####################################################################################################
 
-def near_field_mean_drift_force(first_order_motion_amplitude, dataset, body, *, solver=None, output_pressure=False):
+def compute_near_field_mean_drift_force(
+        dataset, body,
+        *, rao, solver=None, output_pressure=False
+):
     """Compute the mean drift force using the near field formulation.
 
     The force is the second-order part of the integral of the pressure on the moving body and along
     the waterline, for any dofs (rigid body motions or generalized modes with a gradient of motion).
-    All the wave components have the same frequency, so all the terms of the result (for the same or for
-    different wave directions) are at difference frequency zero, where the second-order potential does
-    not contribute to the pressure.
+    Only the interaction between waves at the same frequency (with the same or with different wave directions)
+    are considered and all the terms of the result are at difference-frequency zero,
+    where the second-order potential does not contribute to the pressure.
 
     The first-order fields are evaluated from a dataset computed with the indirect method and
     ``keep_details=True`` (e.g. ``solver.fill_dataset(test_matrix, body, keep_details=True)``),
     which stores the pressures and the source distributions on the body.
-    Several wavelengths and dofs are taken into account at once.
+    Several frequencies and dofs are taken into account at once.
     Only datasets with a single value of rho, g and water depth, and without forward speed, are supported.
 
     Parameters
     ----------
-    first_order_motion_amplitude : xarray DataArray
-        The motion RAO, as returned by :func:`capytaine.post_pro.rao.rao`.
     dataset : xarray Dataset
-        The dataset of the diffraction and radiation results, for all the wavelengths
+        The dataset of the diffraction and radiation results, for all the wave frequencies
         and wave directions of interest, with the source distributions on the body
         (``sources_diffraction``, ``sources_radiation``, and on the lid if any).
     body : FloatingBody or Multibody
         The body of the dataset.
+    rao : xarray DataArray
+        The complex motion amplitude of the body per unit wave amplitude,
+        as returned by :func:`capytaine.post_pro.rao.rao`.
     solver : BEMSolver, optional
         The solver evaluating the potential and its gradient from the source distributions.
         It is recommended to use the same one as the one used to compute the dataset.
@@ -205,27 +222,34 @@ def near_field_mean_drift_force(first_order_motion_amplitude, dataset, body, *, 
     Returns
     -------
     xarray Dataset
-        A dataset with a ``near_field_mean_drift_force`` variable of shape
-        ``(nb_freq, nb_wave_direction, nb_wave_direction, nb_dofs)``.
+        A dataset with a ``mean_drift_force_near_field`` variable of dimensions
+        ``(freq, wave_direction, other_wave_direction, influenced_dof)``,
+        where ``freq`` is the frequency dimension of the inputs (e.g. ``omega`` or ``wavelength``).
+        It is Hermitian in the two wave directions: the term of the pair of waves
+        ``(wave_direction=k, other_wave_direction=l)`` is multiplied by ``a_k conj(a_l)``,
+        where ``a_k`` is the complex amplitude of the wave ``k``.
         If the inputs have different frequencies, wave direction or dofs, the output is
         computed on their intersection.
         If ``output_pressure`` is True, the dataset also contains the following variables:
 
-        - ``pressure_hull_mean_drift``, of shape
-          ``(nb_freq, nb_wave_direction, nb_wave_direction, nb_hull_faces)``: the mean drift
+        - ``pressure_hull_mean_drift``, of dimensions
+          ``(freq, wave_direction, other_wave_direction, hull_face)``: the mean drift
           pressure field on the hull. It has the same normalization as
-          ``near_field_mean_drift_force``: its diagonal is the mean pressure in a single wave of
+          ``mean_drift_force_near_field``: its diagonal is the mean pressure in a single wave of
           unit amplitude. It does not include the waterline term.
-        - ``pressure_waterline_total``, of shape
-          ``(nb_freq, nb_wave_direction, nb_waterline_segments)``: the complex first-order
+        - ``pressure_waterline_total``, of dimensions
+          ``(freq, wave_direction, waterline_segment)``: the complex first-order
           pressure ``p`` in the strip between the mean waterline and the free surface, at the
           middle of each segment of the waterline, for a wave of unit amplitude.
           It is the total pressure on the freely floating body: incident, diffracted and
-          radiated (with the motion given by ``first_order_motion_amplitude``) waves, as well as the hydrostatic pressure
-          averaged over the height of the strip.
+          radiated (with the motion given by ``rao``) waves,
+          as well as the hydrostatic pressure averaged over the height of the strip.
         - ``relative_elevation_waterline``, of the same shape: the complex first-order relative
           elevation ``h`` of the free surface with respect to the body, at the same points, for
           a wave of unit amplitude.
+          These two first-order fields depend on a single wave direction. Their mean product
+          for a pair of waves can be computed by renaming ``wave_direction`` to
+          ``other_wave_direction`` in a copy of them (see cookbook example B10).
         - ``mesh_waterline``, of shape ``(nb_waterline_segments, 2, 3)``: the coordinates of
           the two ends of each segment of the waterline.
     """
@@ -235,9 +259,9 @@ def near_field_mean_drift_force(first_order_motion_amplitude, dataset, body, *, 
     body = body.as_FloatingBody if isinstance(body, Multibody) else body
     mesh = body.mesh.merged()  # Symmetries are ignored for now
     _check_inputs_for_near_field(dataset, body, solver)
-    first_order_motion_amplitude, dataset, body, freq_type = _align_coordinates(
-            first_order_motion_amplitude, dataset, body)
-    motion_amplitude = first_order_motion_amplitude.values  # (nb_freq, nb_wave_direction, nb_dofs)
+    rao, dataset, body, freq_type = _align_coordinates(
+            rao, dataset, body)
+    motion_amplitude = rao.values  # (nb_freq, nb_wave_direction, nb_dofs)
     rho = float(dataset.coords["rho"])
     g = float(dataset.coords["g"])
 
@@ -277,7 +301,7 @@ def near_field_mean_drift_force(first_order_motion_amplitude, dataset, body, *, 
         outputs_per_freq.append((force.coefficients[2], p_displaced.coefficients[2],
                                  strip_pressure.coefficients[1], strip_height.coefficients[1]))
 
-    return _near_field_output_dataset(first_order_motion_amplitude, freq_type, body, mesh, outputs_per_freq, output_pressure)
+    return _near_field_output_dataset(rao, freq_type, body, mesh, outputs_per_freq, output_pressure)
 
 
 def _first_order_fields_from_dataset(dataset, body, mesh, solver, q1):
@@ -329,7 +353,7 @@ def _first_order_fields_from_dataset(dataset, body, mesh, solver, q1):
 
 
 def _check_inputs_for_near_field(dataset, body, solver):
-    """Shallow consistency checks of the dataset input of `near_field_mean_drift_force`."""
+    """Shallow consistency checks of the dataset input of `compute_near_field_mean_drift_force`."""
     if dataset.attrs.get("method") == "direct":
         raise ValueError("The near field mean drift force needs the source distributions of the indirect method, "
                          "but the dataset has been computed with the direct method.")
@@ -376,7 +400,7 @@ def _check_inputs_for_near_field(dataset, body, solver):
 
 
 def _align_coordinates(motion_amplitude, dataset, body):
-    """Restrict the inputs of `near_field_mean_drift_force` to the frequencies and wave directions
+    """Restrict the inputs of `compute_near_field_mean_drift_force` to the frequencies and wave directions
     common to `motion_amplitude` and `dataset`, and to the dofs common to them and `body`.
     A warning is displayed when some values are dropped, and an error when nothing is left.
 
@@ -391,15 +415,15 @@ def _align_coordinates(motion_amplitude, dataset, body):
     if len(frequency_keys) == 1:
         freq_type = list(frequency_keys)[0]
     else:
-        raise ValueError("Cannot identify dimension holding the frequency in the inputs of `near_field_mean_drift_force`")
+        raise ValueError("Cannot identify dimension holding the frequency in the inputs of `compute_near_field_mean_drift_force`")
 
     def intersection(name, values, *others):
         # Keep the order of `values`
         common = [v for v in values if all(v in other for other in others)]
         if len(common) == 0:
-            raise ValueError(f"The inputs of `near_field_mean_drift_force` have no common {name}.")
+            raise ValueError(f"The inputs of `compute_near_field_mean_drift_force` have no common {name}.")
         if any(len(common) != len(set(other)) for other in (values, *others)):
-            LOG.warning(f"The inputs of `near_field_mean_drift_force` do not have the same {name}: "
+            LOG.warning(f"The inputs of `compute_near_field_mean_drift_force` do not have the same {name}: "
                         f"the near field mean drift force is computed only for the common ones.")
         return common
 
@@ -440,20 +464,20 @@ def _sources_on_mesh_including_lid(dataset, kind, leading_dim, body):
     return sources
 
 
-def _near_field_output_dataset(first_order_motion_amplitude, freq_type, body, mesh, outputs_per_freq, output_pressure):
-    """Output dataset of `near_field_mean_drift_force`, from the tuples (force, pressure on the hull,
+def _near_field_output_dataset(rao, freq_type, body, mesh, outputs_per_freq, output_pressure):
+    """Output dataset of `compute_near_field_mean_drift_force`, from the tuples (force, pressure on the hull,
     pressure and height of the strip at the waterline) of each frequency."""
     force, pressure_hull_mean_drift, pressure_waterline, relative_elevation_waterline = (
             np.stack(output) for output in zip(*outputs_per_freq))
     coords = {
-        freq_type: first_order_motion_amplitude.coords[freq_type].values,
-        "wave_direction_k": first_order_motion_amplitude.coords["wave_direction"].values,
-        "wave_direction_l": first_order_motion_amplitude.coords["wave_direction"].values,
+        freq_type: rao.coords[freq_type].values,
+        "wave_direction": rao.coords["wave_direction"].values,
+        "other_wave_direction": rao.coords["wave_direction"].values,
         }
     output = xr.Dataset(
-            {"near_field_mean_drift_force": xr.DataArray(
+            {"mean_drift_force_near_field": xr.DataArray(
                 data=force,
-                dims=[freq_type, "wave_direction_k", "wave_direction_l", "influenced_dof"],
+                dims=[freq_type, "wave_direction", "other_wave_direction", "influenced_dof"],
                 coords={**coords, "influenced_dof": list(body.dofs.keys())},
                 )
              })
@@ -461,12 +485,12 @@ def _near_field_output_dataset(first_order_motion_amplitude, freq_type, body, me
     if output_pressure:
         output["pressure_hull_mean_drift"] = xr.DataArray(
                 data=pressure_hull_mean_drift,
-                dims=[freq_type, "wave_direction_k", "wave_direction_l", "hull_face"],
+                dims=[freq_type, "wave_direction", "other_wave_direction", "hull_face"],
                 coords=coords,
                  )
         waterline_coords = {
-            freq_type: first_order_motion_amplitude.coords[freq_type].values,
-            "wave_direction": first_order_motion_amplitude.coords["wave_direction"].values,
+            freq_type: rao.coords[freq_type].values,
+            "wave_direction": rao.coords["wave_direction"].values,
             }
         output["pressure_waterline_total"] = xr.DataArray(
                 pressure_waterline,
