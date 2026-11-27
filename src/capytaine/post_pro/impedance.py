@@ -18,6 +18,8 @@ import logging
 LOG = logging.getLogger(__name__)
 
 
+# Naming: does not follow the `compute_<quantity>` scheme of the other post-processing functions.
+# Might be renamed `compute_rao_transfer_function` in the future, keeping the current name as an alias.
 def rao_transfer_function(dataset, dissipation=None, stiffness=None):
     """Complex-valued matrix used for the computation of the RAO.
 
@@ -65,6 +67,8 @@ def rao_transfer_function(dataset, dissipation=None, stiffness=None):
     return H
 
 
+# Naming: does not follow the `compute_<quantity>` scheme of the other post-processing functions.
+# Might be renamed `compute_impedance` in the future, keeping `impedance` as an alias.
 def impedance(dataset, dissipation=None, stiffness=None):
     """Complex-valued mechanical impedance matrix.
     See Falnes for more theoretical details::

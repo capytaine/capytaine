@@ -211,8 +211,8 @@ def test_submesh_on_waterline():
     roll = RotationDof((0, 0, 0), (1, 0, 0))
     mask = mesh.faces_centers[:, 0] > 0.0
     sub = DofOnSubmesh(roll, mask)
-    expected = np.where(mask[mesh.indices_faces_waterline, None], roll.evaluate_motion_at_points(mesh.middle_edges_waterline), 0.0)
-    assert 0 < np.count_nonzero(mask[mesh.indices_faces_waterline]) < mesh.nb_edges_waterline
+    expected = np.where(mask[mesh.waterline_faces_indices, None], roll.evaluate_motion_at_points(mesh.waterline_edges_centers), 0.0)
+    assert 0 < np.count_nonzero(mask[mesh.waterline_faces_indices]) < mesh.nb_edges_waterline
     assert np.allclose(sub.evaluate_motion(mesh, location="waterline"), expected)
 
 

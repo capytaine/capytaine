@@ -232,7 +232,9 @@ class BEMSolver:
             the problem to be solved
         keep_details: bool, optional
             if True, store the sources and the potential on the floating body in the output object
-            (default: True)
+            (default: True).
+            For a single problem, these distributions use little memory (unlike in :meth:`fill_dataset`,
+            where they are discarded by default).
         n_threads: int, optional
             the number of threads to use for the resolution.
             Requires the optional package `threadpoolctl` to set.
@@ -276,7 +278,9 @@ class BEMSolver:
 
     def solve_all(self, problems, *, method=None, n_jobs=1, n_threads=None, progress_bar=None, _check_wavelength=True, _display_errors=True, **kwargs):
         """Solve several problems.
-        Optional keyword arguments are passed to `BEMSolver.solve`.
+        Optional keyword arguments are passed to `BEMSolver.solve`,
+        such as ``keep_details`` (default: True). For many problems on a large mesh,
+        ``keep_details=False`` reduces the memory usage of the results.
 
         Parameters
         ----------
@@ -381,15 +385,16 @@ class BEMSolver:
         return results
 
 
-    def fill_dataset(self, dataset, bodies, *, method=None, n_jobs=1, keep_details=False, n_threads=None, _check_wavelength=True, progress_bar=None, **kwargs):
+    def fill_dataset(self, dataset, body=None, *, method=None, n_jobs=1, keep_details=False, n_threads=None, _check_wavelength=True, progress_bar=None, **kwargs):
         """Solve a set of problems defined by the coordinates of an xarray dataset.
 
         Parameters
         ----------
         dataset : xarray Dataset
             dataset containing the problems parameters: frequency, radiating_dof, water_depth, ...
-        bodies : FloatingBody or Multibody
-            The body or bodies involved in the problems
+        body : FloatingBody or Multibody
+            The body involved in the problems.
+            (Formerly ``bodies``, still accepted as a keyword argument, but deprecated.)
         method: string, optional
             select boundary integral equation used to solve the problems.
             It is recommended to set the method more globally when initializing the solver.
@@ -400,11 +405,13 @@ class BEMSolver:
         keep_details: bool, optional (default: False)
             if True, keep the sources, potential and pressure distributions computed for each
             problem. The pressure on the hull is then included in the returned dataset as
-            ``pressure_diffraction``, ``pressure_Froude_Krylov`` and ``pressure_radiation``.
+            ``pressure_hull_diffraction``, ``pressure_hull_incident`` and ``pressure_hull_radiation``.
             The sources (indirect method) are also included as ``sources_diffraction``, ``sources_radiation``
             (and ``sources_lid_diffraction``, ``sources_lid_radiation`` on the lid, if any).
             With the direct method, the potential is included instead
             (``potential_diffraction``, ``potential_radiation`` and the same on the lid).
+            The default is False, unlike :meth:`solve` and :meth:`solve_all`, since these distributions
+            on all the faces of the mesh, for all the problems of the dataset, might use a lot of memory.
         n_threads: int, optional
             the number of threads used to solve each problem.
             The total number of used CPU will be n_jobs×n_threads.
@@ -428,7 +435,14 @@ class BEMSolver:
                  **self.exportable_settings}
         if method is not None:  # Overrides the method in self.exportable_settings
             attrs["method"] = method
-        problems = problems_from_dataset(dataset, bodies)
+        if "bodies" in kwargs:
+            if body is not None:
+                raise TypeError("`fill_dataset` got both `body` and its deprecated name `bodies`.")
+            LOG.warning("Deprecation warning: the argument `bodies` of `fill_dataset` is deprecated, please use `body`.")
+            body = kwargs.pop("bodies")
+        if body is None:
+            raise TypeError("`fill_dataset` missing required argument: `body`.")
+        problems = problems_from_dataset(dataset, body)
         if 'theta' in dataset.coords:
             results = self.solve_all(problems, keep_details=True, method=method, n_jobs=n_jobs, n_threads=n_threads, _check_wavelength=_check_wavelength, progress_bar=progress_bar)
             kochin = kochin_data_array(results, dataset.coords['theta'])

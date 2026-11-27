@@ -8,6 +8,7 @@ Developer manual
    installation.rst
    overview.rst
    contributing.rst
+   naming_conventions.rst
    testing.rst
    data_structures.rst
    making_a_release.rst

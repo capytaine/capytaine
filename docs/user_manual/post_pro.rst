@@ -186,7 +186,7 @@ The output can be added to the first-order dataset with ``dataset.update(nf_mdf)
 The implementation supports single rigid body and multiple bodies.
 The expression used for the computation of the mean drift force are generic enough to be used with generalized degrees of freedom, but this use case has not been validated.
 
-Optional parameter ``output_pressure`` allows to return the mean drift pressure field on the hull as ``pressure_hull_mean_drift``, of dimensions ``(freq, wave_direction, other_wave_direction, hull_face)``, as well as the first-order fields on the waterline from which the waterline term of the force is computed: ``pressure_waterline_total`` and ``relative_elevation_waterline``, of dimensions ``(freq, wave_direction, waterline_segment)``, and the waterline segments ``mesh_waterline``.
+Optional parameter ``output_pressure`` allows to return the mean drift pressure field on the hull as ``pressure_hull_mean_drift``, of dimensions ``(freq, wave_direction, other_wave_direction, hull_face)``, as well as the first-order fields on the waterline from which the waterline term of the force is computed: ``pressure_waterline_total`` and ``relative_elevation_waterline``, of dimensions ``(freq, wave_direction, waterline_edge)``, and the waterline edges ``mesh_waterline_vertices``.
 
 Far-field
 ~~~~~~~~~

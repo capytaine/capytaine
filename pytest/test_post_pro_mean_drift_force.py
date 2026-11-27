@@ -285,9 +285,9 @@ def test_mean_drift_force_from_exported_pressures_of_fixed_body():
     rao = 0.0 * cpt.post_pro.rao(dataset)
     mdf = cpt.compute_near_field_mean_drift_force(dataset, body, rao=rao, solver=solver, output_pressure=True).isel(wavenumber=0)
 
-    p_wl = mdf["pressure_waterline_total"].transpose("wave_direction", "waterline_segment").values
-    h_wl = mdf["relative_elevation_waterline"].transpose("wave_direction", "waterline_segment").values
-    strip_width = h_wl / np.sqrt(1 - body.mesh.merged().normals_edges_waterline[:, 2]**2)
+    p_wl = mdf["pressure_waterline_total"].transpose("wave_direction", "waterline_edge").values
+    h_wl = mdf["relative_elevation_waterline"].transpose("wave_direction", "waterline_edge").values
+    strip_width = h_wl / np.sqrt(1 - body.mesh.merged().waterline_edges_normals[:, 2]**2)
     waterline = body.integrate_pressure_on_waterline(Expansion.first_order(p_wl) * Expansion.first_order(strip_width)).coefficients[2]
     for k in range(2):
         for l in range(2):
@@ -307,7 +307,7 @@ def test_near_field_mean_drift_force_of_submerged_body():
                        coords={"omega": [1.0], "wave_direction": [0.0], "radiating_dof": list(body.dofs)})
     mdf = cpt.compute_near_field_mean_drift_force(dataset, body, rao=rao, solver=solver, output_pressure=True)
     assert np.all(np.isfinite(mdf["mean_drift_force_near_field"].values))
-    assert mdf["pressure_waterline_total"].sizes["waterline_segment"] == 0
+    assert mdf["pressure_waterline_total"].sizes["waterline_edge"] == 0
 
 
 def test_near_field_mean_drift_force_of_array_dofs():
@@ -512,7 +512,7 @@ def test_hydrostatic_force_on_moving_body_against_displaced_mesh():
     dofs_on_waterline = body._dofs_on_waterline()
     vertical_motion_waterline = np.sum(q[:, :, None] * dofs_on_waterline[None, :, :, 2], axis=1)
     pressure_waterline = Expansion.first_order(-rho * g * vertical_motion_waterline / 2)  # mean over the strip
-    strip_width_waterline = Expansion.first_order(-vertical_motion_waterline / np.sqrt(1 - mesh.merged().normals_edges_waterline[:, 2]**2))
+    strip_width_waterline = Expansion.first_order(-vertical_motion_waterline / np.sqrt(1 - mesh.merged().waterline_edges_normals[:, 2]**2))
     force = body.integrate_pressure_on_moving_body(pressure, Expansion.first_order(q)) + body.integrate_pressure_on_waterline(pressure_waterline * strip_width_waterline)
 
     def mean_second_order_force(eps):

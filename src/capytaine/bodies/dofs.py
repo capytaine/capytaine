@@ -42,7 +42,7 @@ def _points_on_mesh(mesh: AbstractMesh, location: str):
             np.arange(mesh.nb_faces)[:, None]
         )
     elif location == "waterline":
-        return (mesh.middle_edges_waterline, mesh.indices_faces_waterline)
+        return (mesh.waterline_edges_centers, mesh.waterline_faces_indices)
     else:
         raise ValueError(f"Unknown location {location!r} to evaluate a dof, ",
                          "expected 'faces_centers', 'quadrature_points' or 'waterline'.")

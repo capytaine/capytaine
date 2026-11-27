@@ -35,10 +35,11 @@ Major changes
 
    * :func:`~capytaine.io.xarray.assemble_dataset` and :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` can now include in the output dataset the pressure field on the hull as well as the source distribution for the indirect solver or the potential field for the direct solver.
      They are included in the dataset by ``assemble_dataset(results)`` automatically if :meth:`~capytaine.bem.solver.BEMSolver.solve` and :meth:`~capytaine.bem.solver.BEMSolver.solve_all` kept this data in the `results` object with their ``keep_details`` argument.
-     The method :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` has a new keyword argument ``keep_details`` (default: ``False``) to keep the mesh data after the BEM resolutions and thus pass them to :func:`~capytaine.io.xarray.assemble_dataset`.
+     The method :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` has a new keyword argument ``keep_details`` (default: ``False``, to limit the memory usage) to keep the mesh data after the BEM resolutions and thus pass them to :func:`~capytaine.io.xarray.assemble_dataset`.
+     The pressures on the hull are stored as ``pressure_hull_diffraction``, ``pressure_hull_incident`` and ``pressure_hull_radiation``.
      See :doc:`user_manual/post_pro` for more details. (:pull:`945`)
 
-   * The ``mesh=True`` option of :func:`~capytaine.io.xarray.assemble_dataset` and :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` now stores the full mesh of the hull (and lid, if any) and the dofs of the body in the dataset, as the variables ``mesh_vertices``, ``mesh_faces_center``, ``lid_mesh_vertices``, ``lid_mesh_faces_center``, ``dof_motions`` and ``dof_gradient_of_motions``. See :doc:`user_manual/post_pro` for more details. (:pull:`947`)
+   * The ``mesh=True`` option of :func:`~capytaine.io.xarray.assemble_dataset` and :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` now stores the full mesh of the hull (and lid, if any) and the dofs of the body in the dataset, as the variables ``mesh_hull_vertices``, ``mesh_hull_faces_centers``, ``mesh_lid_vertices``, ``mesh_lid_faces_centers``, ``dof_motion`` and ``dof_gradient_of_motion``. See :doc:`user_manual/post_pro` for more details. (:pull:`947`)
      Symmetries are currently not supported, the stored mesh is the full unfolded mesh.
 
 * Add a :class:`~capytaine.bodies.dofs.CustomDof` to define **generalized body mode**.
@@ -70,6 +71,12 @@ Minor changes
 
    * :meth:`~capytaine.ui.vedo_animations.Animation.add_body` and :meth:`~capytaine.ui.vedo_animations.Animation.add_free_surface` accept new keyword arguments ``color``, ``edge_color`` and ``cmap`` to customize the colors of the animation.
      The ``axes`` parameter of ``vedo.Plotter`` can now be passed to :meth:`~capytaine.ui.vedo_animations.Animation.run` and :meth:`~capytaine.ui.vedo_animations.Animation.save` (e.g. ``axes=0`` to hide the axes). (:pull:`989`)
+
+* **Naming**:
+
+   * The argument ``bodies`` of :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` is renamed ``body``, since only a single body is accepted since version 3.0. The former name is still accepted as a keyword argument, with a deprecation warning.
+     The argument ``pb`` of the functions of :mod:`capytaine.bem.airy_waves` is renamed ``problem``.
+     See the new page :doc:`developer_manual/naming_conventions`.
 
 
 Bug fixes
@@ -192,7 +199,7 @@ Internals
      :meth:`~capytaine.bodies.bodies.FloatingBody.integrate_pressure_on_moving_body`
      and
      :meth:`~capytaine.bodies.bodies.FloatingBody.integrate_pressure_on_waterline`.
-     Add the properties ``middle_edges_waterline``, ``normals_edges_waterline`` and ``indices_faces_waterline`` to the meshes. (:pull:`962`)
+     Add the properties ``waterline_edges_centers``, ``waterline_edges_normals`` and ``waterline_faces_indices`` to the meshes. (:pull:`962`)
 
    * Add the private methods ``BEMSolver._compute_potential_from_sources`` and ``BEMSolver._compute_potential_gradient_from_sources``, evaluating the potential or its gradient from bare source distributions (given with the mesh and the Green function parameters, without a result object).
      The sources can have leading batch axes, in which case the influence matrix is built only once and multiplied by all the source distributions at once.
