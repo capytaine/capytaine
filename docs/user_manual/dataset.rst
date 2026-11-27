@@ -110,21 +110,23 @@ arguments to store more information in the dataset:
 - :code:`mesh` (default: :code:`False`): stores in the dataset the full mesh for
   the hull and the lid, as well as the dofs.
 
-  - The hull mesh is stored using the ``hull_face`` dimension in the arrays :code:`mesh_vertices` (shape ``(hull_face, 4, 3)``) and :code:`mesh_faces_center` (shape: ``(hull_face, 3)``).
+  - The hull mesh is stored using the ``hull_face`` dimension in the arrays :code:`mesh_hull_vertices` (shape ``(hull_face, 4, 3)``) and :code:`mesh_hull_faces_centers` (shape: ``(hull_face, 3)``).
+    The hull mesh can be rebuilt from the dataset with :code:`cpt.load_mesh(dataset)`.
 
-  - If the body has a lid, it is stored similarly using the ``lid_face`` dimension in the arrays :code:`lid_mesh_vertices` (shape ``(lid_face, 4, 3)``) and :code:`lid_mesh_faces_center` (shape: ``(lid_face, 3)``).
+  - If the body has a lid, it is stored similarly using the ``lid_face`` dimension in the arrays :code:`mesh_lid_vertices` (shape ``(lid_face, 4, 3)``) and :code:`mesh_lid_faces_centers` (shape: ``(lid_face, 3)``).
 
-  - If the body has dofs, the array ``dof_motions`` (shape: ``(influenced_dof, hull_face, 3)``) stores the displacement at each face center due to each dof.
+  - If the body has dofs, the array ``dof_motion`` (dimensions: ``(radiating_dof, hull_face, vector_component)``) stores the displacement at each face center due to each dof.
+    If the test matrix has a ``radiating_dof`` coordinate, only the motions of these dofs are stored.
 
-  - If the dofs have a Jacobian defined (as do rigid body dofs or :class:`~capytaine.bodies.dofs.CustomDof` when setting the ``gradient_of_motion`` parameter), it is stored also in an array of shape ``(influenced_dof, hull_face, 3, 3)``.
+  - If the dofs have a Jacobian defined (as do rigid body dofs or :class:`~capytaine.bodies.dofs.CustomDof` when setting the ``gradient_of_motion`` parameter), it is stored also in the array ``dof_gradient_of_motion`` of dimensions ``(radiating_dof, hull_face, vector_component, derivative_direction)``, such that ``dof_gradient_of_motion.sel(vector_component="z", derivative_direction="x")`` is the derivative of the vertical motion in the direction x.
 
   - The name of the quadrature scheme used for the mesh is stored as a string in the :code:`quadrature_method` variable.
 
 .. note:: If the body's mesh takes advantage of a planar or rotational
           symmetry (e.g. a :class:`~capytaine.meshes.symmetric_meshes.ReflectionSymmetricMesh`),
           the symmetry itself is **not** preserved by :code:`mesh=True`, as of
-          the current version of Capytaine: :code:`mesh_vertices`,
-          :code:`mesh_faces_center` and :code:`dof_motions` always contain the
+          the current version of Capytaine: :code:`mesh_hull_vertices`,
+          :code:`mesh_hull_faces_centers` and :code:`dof_motion` always contain the
           full, explicit list of faces (as if :meth:`~capytaine.meshes.AbstractMesh.merged`
           had been called first), with nothing in the dataset indicating that
           the original mesh was symmetric. This only affects the exported
@@ -137,7 +139,9 @@ arguments to store more information in the dataset:
   When set to :code:`True`, the potential, pressure and sources computed for
   each problem is stored in the dataset:
 
-   - the variables :code:`pressure_diffraction`, :code:`pressure_Froude_Krylov` and :code:`pressure_radiation` contain the pressure on the hull (with a :code:`hull_face` dimension, in the same order as the faces of :code:`body.mesh`).
+   - the variables :code:`pressure_hull_diffraction`, :code:`pressure_hull_incident` and :code:`pressure_hull_radiation` contain the pressure on the hull (with a :code:`hull_face` dimension, in the same order as the faces of :code:`body.mesh`).
+     They are the pressures of the diffracted wave (without the incident wave), of the incident wave and of the radiated wave.
+     The integrals of :code:`pressure_hull_diffraction` and :code:`pressure_hull_incident` are the :code:`diffraction_force` and the :code:`Froude_Krylov_force`.
      Pressure on the lid has no physical meaning and is not stored in the dataset.
 
    - if the problems were solved with the indirect solver, the dataset includes the variables ``sources_diffraction`` and ``sources_radiation`` (on the hull, with dimension ``hull_face``) and ``sources_lid_diffraction`` and ``sources_lid_radiation`` (on the lid, if any, with dimension ``lid_face``)

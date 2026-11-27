@@ -35,7 +35,9 @@ from capytaine.green_functions.delhommeau import Delhommeau, XieDelhommeau
 from capytaine.green_functions.hams import LiangWuNoblesseGF, FinGreen3D, HAMS_GF
 
 from capytaine.io.xarray import assemble_dataframe, assemble_dataset, assemble_matrices, compute_hydrostatics_dataset, export_dataset
+from capytaine.post_pro.mean_drift_force import compute_far_field_mean_drift_force, compute_near_field_mean_drift_force
 
+from capytaine.tools.timer import age
 from capytaine.ui.rich import set_logging
 
 set_logging(level="WARNING", force=False)

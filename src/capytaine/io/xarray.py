@@ -379,6 +379,8 @@ def compute_hydrostatics_dataset(
     return hs
 
 
+# Naming: does not follow the `assemble_<something>` scheme of the other functions building a dataset from results.
+# Might be renamed in the future, keeping the current name as an alias.
 def kochin_data_array(results: Sequence[LinearPotentialFlowResult],
                       theta_range: Sequence[float],
                       **kwargs,
@@ -472,16 +474,16 @@ VARIABLES_ATTRIBUTES = {
         "Froude_Krylov_force": {
             'long_name': "Froude Krylov force",
             },
-        "pressure_radiation": {
-            'long_name': "Radiation pressure",
+        "pressure_hull_radiation": {
+            'long_name': "Radiation pressure on the hull",
             'units': 'Pa',
             },
-        "pressure_diffraction": {
-            'long_name': "Diffraction pressure",
+        "pressure_hull_diffraction": {
+            'long_name': "Diffraction pressure on the hull",
             'units': 'Pa',
             },
-        "pressure_Froude_Krylov": {
-            'long_name': "Froude Krylov pressure",
+        "pressure_hull_incident": {
+            'long_name': "Incident wave pressure on the hull",
             'units': 'Pa',
             },
         "sources_diffraction": {
@@ -567,9 +569,9 @@ def assemble_dataset(results,
         If True, store the mesh (vertices and centers of each face of the hull,
         and of the lid if any) and the dofs (motion, and when available its
         gradient, of each dof evaluated on the hull) in the output dataset, as
-        the data variables ``mesh_vertices``, ``mesh_faces_center``,
-        ``lid_mesh_vertices``, ``lid_mesh_faces_center``, ``dof_motions`` and
-        ``dof_gradient_of_motions``.
+        the data variables ``mesh_hull_vertices``, ``mesh_hull_faces_centers``,
+        ``mesh_lid_vertices``, ``mesh_lid_faces_centers``, ``dof_motion`` and
+        ``dof_gradient_of_motion``.
     hydrostatics: bool, optional
         If True, store the hydrostatic data in the output dataset if they exist.
     attrs: dict, optional
@@ -712,46 +714,45 @@ def assemble_dataset(results,
             # mesh first. This does not change `nb_faces` or the order of the
             # faces (matching `faces_centers` below), but it does mean any
             # symmetry of the original mesh is not preserved in the dataset.
-            dataset["mesh_vertices"] = (["hull_face", "vertices_of_face", "space_coordinate"], body.mesh.merged().as_array_of_faces())
-            dataset["mesh_faces_center"] = (["hull_face", "space_coordinate"], body.mesh.faces_centers)
+            dataset["mesh_hull_vertices"] = (["hull_face", "vertices_of_face", "space_coordinate"], body.mesh.merged().as_array_of_faces())
+            dataset["mesh_hull_faces_centers"] = (["hull_face", "space_coordinate"], body.mesh.faces_centers)
 
             if body.lid_mesh is not None:
-                dataset["lid_mesh_vertices"] = (["lid_face", "vertices_of_face", "space_coordinate"], body.lid_mesh.merged().as_array_of_faces())
-                dataset["lid_mesh_faces_center"] = (["lid_face", "space_coordinate"], body.lid_mesh.faces_centers)
+                dataset["mesh_lid_vertices"] = (["lid_face", "vertices_of_face", "space_coordinate"], body.lid_mesh.merged().as_array_of_faces())
+                dataset["mesh_lid_faces_centers"] = (["lid_face", "space_coordinate"], body.lid_mesh.faces_centers)
 
             if len(body.dofs) > 0:
-                # `influenced_dof` (rather than `radiating_dof`) is used here because it
-                # always covers the full set of body.dofs and is present as soon as any
-                # radiation or diffraction result exists, whereas `radiating_dof` may be
-                # a user-restricted subset, or absent entirely for diffraction-only results.
-                if "influenced_dof" in dataset.coords:
-                    dof_names = list(dataset.coords["influenced_dof"].values)
+                # Subset of the dofs in the test matrix: only these are stored (no NaN padding when merging).
+                if "radiating_dof" in dataset.coords:
+                    dof_names = list(dataset.coords["radiating_dof"].values)
                 else:
                     dof_names = list(body.dofs.keys())
 
-                dof_motions = []
-                dof_gradient_of_motions = []
+                dof_motion = []
+                dof_gradient_of_motion = []
                 any_abstract_dof = False
                 for dof_name in dof_names:
                     dof = body.dofs[dof_name]
                     if isinstance(dof, AbstractDof):
                         any_abstract_dof = True
-                        dof_motions.append(dof.evaluate_motion(body.mesh))
-                        dof_gradient_of_motions.append(dof.evaluate_gradient_of_motion(body.mesh))
+                        dof_motion.append(dof.evaluate_motion(body.mesh))
+                        dof_gradient_of_motion.append(dof.evaluate_gradient_of_motion(body.mesh))
                     else:
-                        dof_motions.append(dof)
-                        dof_gradient_of_motions.append(np.full((body.mesh.nb_faces, 3, 3), np.nan))
+                        dof_motion.append(dof)
+                        dof_gradient_of_motion.append(np.full((body.mesh.nb_faces, 3, 3), np.nan))
 
                 mesh_dofs_dataset = xr.Dataset(
-                        coords={"influenced_dof": dof_names},
+                        coords={"radiating_dof": dof_names, "vector_component": ["x", "y", "z"]},
                         data_vars={
-                            "dof_motions": (["influenced_dof", "hull_face", "space_coordinate"], dof_motions),
+                            "dof_motion": (["radiating_dof", "hull_face", "vector_component"], dof_motion),
                             },
                         )
                 if any_abstract_dof:
-                    mesh_dofs_dataset.coords["gradient"] = xr.DataArray(["dx", "dy", "dz"], dims=["gradient"])
-                    mesh_dofs_dataset["dof_gradient_of_motions"] = (
-                            ["influenced_dof", "hull_face", "space_coordinate", "gradient"], dof_gradient_of_motions)
+                    # Jacobian: derivative of the component `vector_component` of the motion
+                    # in the direction `derivative_direction`.
+                    mesh_dofs_dataset.coords["derivative_direction"] = xr.DataArray(["x", "y", "z"], dims=["derivative_direction"])
+                    mesh_dofs_dataset["dof_gradient_of_motion"] = (
+                            ["radiating_dof", "hull_face", "vector_component", "derivative_direction"], dof_gradient_of_motion)
                 dataset = xr.merge([dataset, mesh_dofs_dataset], compat="no_conflicts", join="outer")
 
     # HYDROSTATICS
@@ -810,12 +811,12 @@ def assemble_dataset(results,
             continue
         variables = {  # name: (values, on_hull)
             # No pressure on the lid: it is not a physical surface.
-            f"pressure_{kind}": (lambda r: r.pressure, True),
+            f"pressure_hull_{kind}": (lambda r: r.pressure, True),
             f"{unknown}_{kind}": (lambda r: getattr(r, unknown), True),
             f"{unknown}_lid_{kind}": (lambda r: getattr(r, unknown), False),
             }
         if kind == "diffraction" and any(r.pressure is not None for r in selected):
-            variables["pressure_Froude_Krylov"] = (lambda r: airy_waves_pressure(r.body.mesh_including_lid, r.problem), True)
+            variables["pressure_hull_incident"] = (lambda r: airy_waves_pressure(r.body.mesh_including_lid, r.problem), True)
         for name, (values, on_hull) in variables.items():
             dataarray = _build_face_distribution(selected, values, on_hull, main_freq_type, optional_dims)
             if dataarray is not None:

@@ -158,7 +158,7 @@ Mean drift forces
 Near-field
 ~~~~~~~~~~
 
-The mean drift forces can be computed with :func:`~capytaine.post_pro.mean_drift_force.near_field_mean_drift_force`.
+The mean drift forces can be computed with :func:`~capytaine.post_pro.mean_drift_force.compute_near_field_mean_drift_force`.
 Here is an example::
 
     import numpy as np
@@ -174,25 +174,25 @@ Here is an example::
                 'radiating_dof': list(body.dofs.keys())
             })
     dataset = solver.fill_dataset(test_matrix, body, hydrostatics=True, keep_details=True)
-    first_order_motion = cpt.post_pro.rao(dataset)
-
-    from capytaine.post_pro.mean_drift_force import near_field_mean_drift_force
-    nf_mdf = near_field_mean_drift_force(first_order_motion, dataset, body, solver=solver, output_pressure=False)
+    rao = cpt.post_pro.rao(dataset)
+    nf_mdf = cpt.compute_near_field_mean_drift_force(dataset, body, rao=rao, solver=solver, output_pressure=False)
 
 The ``dataset`` should have been computed with the ``'indirect'`` method and ``keep_details=True``, such that the source distribution is stored in the dataset allowing first-order quantities to be used in the computation of the mean drift force.
-The force is computed for the frequencies and wave directions common to ``first_order_motion_amplitude`` and ``dataset``, and for the dofs common to them and ``body`` (a warning is logged when some are left out).
-This function returns a dataset with a ``near_field_mean_drift_force`` variable of shape ``(nb_freq, nb_wave_direction, nb_wave_direction, nb_dofs)``.
+The force is computed for the frequencies and wave directions common to ``rao`` and ``dataset``, and for the dofs common to them and ``body`` (a warning is logged when some are left out).
+This function returns a dataset with a ``mean_drift_force_near_field`` variable of dimensions ``(freq, wave_direction, other_wave_direction, influenced_dof)``, where ``freq`` is the frequency dimension of the inputs.
+The mean drift force in a sea made of several waves of the same frequency, with complex amplitudes :math:`a_k`, is the sum over all pairs of waves of :math:`a_k a_l^*` times the value at ``wave_direction=k, other_wave_direction=l`` (see :doc:`/theory_manual/second_order_forces`).
+The output can be added to the first-order dataset with ``dataset.update(nf_mdf)``.
 
 The implementation supports single rigid body and multiple bodies.
 The expression used for the computation of the mean drift force are generic enough to be used with generalized degrees of freedom, but this use case has not been validated.
 
-Optional parameter ``output_pressure`` allows to return the mean drift pressure field on the hull as ``pressure_hull_mean_drift``, of shape ``(nb_freq, nb_wave_direction, nb_wave_direction, nb_hull_faces)``, as well as the first-order fields on the waterline from which the waterline term of the force is computed: ``pressure_waterline_total`` and ``relative_elevation_waterline``, of shape ``(nb_freq, nb_wave_direction, nb_waterline_segments)``, and the waterline segments ``mesh_waterline``.
+Optional parameter ``output_pressure`` allows to return the mean drift pressure field on the hull as ``pressure_hull_mean_drift``, of dimensions ``(freq, wave_direction, other_wave_direction, hull_face)``, as well as the first-order fields on the waterline from which the waterline term of the force is computed: ``pressure_waterline_total`` and ``relative_elevation_waterline``, of dimensions ``(freq, wave_direction, waterline_edge)``, and the waterline edges ``mesh_waterline_vertices``.
 
 Far-field
 ~~~~~~~~~
 
 The horizontal mean drift forces can be computed from the Kochin function using
-:func:`~capytaine.post_pro.mean_drift_force.far_field_mean_drift_force`,
+:func:`~capytaine.post_pro.mean_drift_force.compute_far_field_mean_drift_force`,
 here is an example::
 
     import numpy as np
@@ -209,10 +209,8 @@ here is an example::
                 'radiating_dof': list(body.dofs.keys())
             })
     dataset = solver.fill_dataset(test_matrix, body, hydrostatics=True)
-    first_order_motion = cpt.post_pro.rao(dataset)
-
-    from capytaine.post_pro.mean_drift_force import far_field_mean_drift_force
-    ff_mdf = far_field_mean_drift_force(first_order_motion, dataset)
+    rao = cpt.post_pro.rao(dataset)
+    ff_mdf = cpt.compute_far_field_mean_drift_force(dataset, rao=rao)
 
 Here we added ``theta`` to the ``test_matrix`` such that the Kochin function is
 automatically included in the dataset.
@@ -220,7 +218,11 @@ The ``'indirect'`` method (default) is required for this.
 The range of ``theta`` should cover both :math:`[0, 2\pi]` and some
 neighborhood of the wave direction of interest (here :math:`[-\pi/8, \pi/8]`).
 
-The output is a dataset with variables ``drift_force_surge``, ``drift_force_sway`` and ``drift_force_yaw``.
-They can be stacked into a single variable with dimension ``influenced_dof``
-like the other forces in Capytaine with
-:func:`~capytaine.post_pro.mean_drift_force._merge_far_field_mean_drift_variables`.
+The output is a dataset with a ``mean_drift_force_far_field`` variable, with the same dimensions and convention as the near-field one, except that ``influenced_dof`` only contains ``Surge``, ``Sway`` and ``Yaw``.
+It can be added to the first-order dataset with ``dataset.update(ff_mdf)``, which sets the other dofs to NaN
+(``xr.merge([dataset, ff_mdf])`` fails because of the different ``influenced_dof``, unless ``join="left"`` is given).
+
+.. note::
+   The former function :func:`~capytaine.post_pro.mean_drift_force.far_field_mean_drift_force`
+   is deprecated. It returns the format of Capytaine 3.0: three variables ``drift_force_surge``,
+   ``drift_force_sway`` and ``drift_force_yaw``, with the dimensions ``wave_direction_k`` and ``wave_direction_l``.

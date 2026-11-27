@@ -180,3 +180,17 @@ def test_warning_mesh_resolution(caplog):
     with caplog.at_level("WARNING"):
         solver.solve(pb)
     assert "resolution " in caplog.text
+
+
+def test_fill_dataset_with_deprecated_bodies_argument(caplog):
+    body = helpers.small_sphere_body(["Heave"])
+    test_matrix = xr.Dataset(coords={'omega': [1.0], 'radiating_dof': ['Heave']})
+    with caplog.at_level("WARNING"):
+        dataset = helpers.solver().fill_dataset(test_matrix, bodies=body)
+    assert "deprecated" in caplog.text
+    reference = helpers.solver().fill_dataset(test_matrix, body)
+    np.testing.assert_allclose(dataset["added_mass"].values, reference["added_mass"].values)
+    with pytest.raises(TypeError):
+        helpers.solver().fill_dataset(test_matrix, body, bodies=body)
+    with pytest.raises(TypeError):
+        helpers.solver().fill_dataset(test_matrix)

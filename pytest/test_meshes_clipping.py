@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import numpy as np
+import capytaine as cpt
 
 from capytaine.meshes.meshes import Mesh
 
@@ -128,3 +129,12 @@ def test_clip_metadata():
     mesh = Mesh(vertices=vertices, faces=faces, faces_metadata={'foo': ['a']})
     imm_mesh = mesh.immersed_part()
     assert np.all(imm_mesh.faces_metadata['foo'] == np.array(['a', 'a']))
+
+
+def test_immersed_part_with_free_surface_not_at_zero():
+    mesh = cpt.mesh_sphere(radius=1.0, center=(0.0, 0.0, -0.5), resolution=(8, 8))
+    immersed = mesh.immersed_part(free_surface=-0.5)
+    assert np.all(immersed.faces_centers[:, 2] <= -0.5)
+    assert np.isclose(immersed.vertices[immersed.faces].reshape(-1, 3)[:, 2].max(), -0.5)
+    deep = mesh.immersed_part(free_surface=-0.5, water_depth=0.5)
+    assert np.all(deep.faces_centers[:, 2] >= -1.0)

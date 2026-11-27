@@ -181,24 +181,24 @@ class AbstractMesh(SurfaceIntegralsMixin, ABC):
             A tuple (edges, faces) where the edges are the edges of the water line (pairs of vertex indices)
             and the faces are the corresponding faces of the mesh that contain these edges (quadruplet of vertex indices).
         """
-        edges_waterline, indices_faces_waterline = self._edges_and_indices_faces_waterline
-        return edges_waterline, self.faces[indices_faces_waterline, :]
+        edges_waterline, waterline_faces_indices = self._waterline_edges_and_faces_indices
+        return edges_waterline, self.faces[waterline_faces_indices, :]
 
     @cached_property
-    def _edges_and_indices_faces_waterline(self):
+    def _waterline_edges_and_faces_indices(self):
         epsilon = 1e-6
         edges_waterline = []
-        indices_faces_waterline = []
+        waterline_faces_indices = []
 
         indices_vertices = [v for v in range(self.nb_vertices) if np.abs(self.vertices[v,-1]) <= epsilon]
         for k in range(self.nb_faces):
             set_indices = {index for index in self.faces[k,:] if index in indices_vertices}
             if len(set_indices) == 2:
                 edges_waterline.append(list(set_indices))
-                indices_faces_waterline.append(k)
+                waterline_faces_indices.append(k)
 
         # Reshape to keep two dimensions when the mesh has no waterline.
-        return np.array(edges_waterline, dtype=int).reshape(-1, 2), np.array(indices_faces_waterline, dtype=int)
+        return np.array(edges_waterline, dtype=int).reshape(-1, 2), np.array(waterline_faces_indices, dtype=int)
 
     @property
     def nb_edges_waterline(self) -> int:
@@ -216,9 +216,9 @@ class AbstractMesh(SurfaceIntegralsMixin, ABC):
         return self.edges_faces_waterline()[1]
 
     @cached_property
-    def indices_faces_waterline(self):
+    def waterline_faces_indices(self):
         """Return an array with the indices of the faces containing the edges of the water line with shape (nb_edges_waterline,)."""
-        return self._edges_and_indices_faces_waterline[1]
+        return self._waterline_edges_and_faces_indices[1]
 
     @cached_property
     def length_edges_waterline(self):
@@ -230,13 +230,13 @@ class AbstractMesh(SurfaceIntegralsMixin, ABC):
         return length_waterline
 
     @cached_property
-    def middle_edges_waterline(self):
-        """Return an array with the middles of the edges of the water line with shape (nb_edges_waterline, 3)."""
+    def waterline_edges_centers(self):
+        """Return an array with the centers (middles) of the edges of the water line with shape (nb_edges_waterline, 3)."""
         edges = self.edges_waterline
         return (self.vertices[edges[:, 0], :] + self.vertices[edges[:, 1], :]) / 2
 
     @cached_property
-    def normals_edges_waterline(self):
+    def waterline_edges_normals(self):
         """Return an array with the normals of the faces containing the edges of the water line with shape (nb_edges_waterline, 3)."""
         return compute_faces_normals(self.vertices, self.faces_waterline).reshape(-1, 3)
 
@@ -423,7 +423,10 @@ class AbstractMesh(SurfaceIntegralsMixin, ABC):
         if (free_surface - water_depth <= self.z_span[0]
             and self.z_span[1] <= free_surface):  # Already clipped
             return self  # Shortcut for performance
-        clipped = self.clipped(origin=(0, 0, 0), normal=(0, 0, 1))
+        if free_surface < np.inf:
+            clipped = self.clipped(origin=(0, 0, free_surface), normal=(0, 0, 1))
+        else:
+            clipped = self
         if water_depth < np.inf:
             clipped = clipped.clipped(origin=(0, 0, free_surface-water_depth), normal=(0, 0, -1))
         return clipped

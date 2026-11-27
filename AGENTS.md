@@ -50,6 +50,8 @@ just test_in_py314_reference_env > /tmp/ref314.log 2>&1; echo "exit $?" >> /tmp/
 
 ## Style
 
+See `docs/developer_manual/naming_conventions.rst`.
+
 ### Tests
 
 - Avoid pytest fixtures: use plain functions (possibly `lru_cache`d) or context managers,

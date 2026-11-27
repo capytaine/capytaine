@@ -16,7 +16,7 @@ import logging
 from typing import Union, Iterable, Tuple, TextIO
 import xarray
 
-from capytaine.post_pro.mean_drift_force import _merge_far_field_mean_drift_variables
+from capytaine.post_pro.mean_drift_force import _far_field_mean_drift_force_from_legacy_variables
 
 logger = logging.getLogger(__name__)
 
@@ -486,7 +486,7 @@ def _export_wamit_mean_drift(
     Parameters
     ----------
     drift_force : xarray.DataArray
-        The drift force DataArray with 'influenced_dof', 'wave_direction_k', and 'wave_direction_l' dimensions.
+        The drift force DataArray with 'influenced_dof', 'wave_direction', and 'other_wave_direction' dimensions.
     filename : str
         Output path for the .8 file.
     length_scale : float
@@ -500,8 +500,8 @@ def _export_wamit_mean_drift(
     rho = drift_force.coords["rho"].item()
     g = drift_force.coords["g"].item()
 
-    betas_k = drift_force.coords["wave_direction_k"].values
-    betas_l = drift_force.coords["wave_direction_l"].values
+    betas_k = drift_force.coords["wave_direction"].values
+    betas_l = drift_force.coords["other_wave_direction"].values
     if np.ndim(betas_k) == 0:
         betas_k = np.atleast_1d(betas_k)
     if np.ndim(betas_l) == 0:
@@ -531,7 +531,7 @@ def _export_wamit_mean_drift(
                         # k exponent: 1 for translational forces, 2 for rotational moments
                         k_exp = 1 if dof_type == "trans" else 2
 
-                        value = drift_force.sel({freq_key: freq_val, "wave_direction_k": beta_k, "wave_direction_l": beta_l, "influenced_dof": dof_name}).item()
+                        value = drift_force.sel({freq_key: freq_val, "wave_direction": beta_k, "other_wave_direction": beta_l, "influenced_dof": dof_name}).item()
 
                         # Skip NaN values
                         if np.isnan(value):
@@ -554,12 +554,14 @@ def _export_wamit_mean_drift(
                         )
 
 def export_wamit_8(dataset, *args, **kwargs):
-    return _export_wamit_mean_drift(
-        _merge_far_field_mean_drift_variables(dataset)["drift_force"], *args, **kwargs
-    )
+    if "mean_drift_force_far_field" in dataset:
+        drift_force = dataset["mean_drift_force_far_field"]
+    else:  # Output of the deprecated `far_field_mean_drift_force`
+        drift_force = _far_field_mean_drift_force_from_legacy_variables(dataset)
+    return _export_wamit_mean_drift(drift_force, *args, **kwargs)
 
 def export_wamit_9(dataset, *args, **kwargs):
-    return _export_wamit_mean_drift(dataset["near_field_mean_drift_force"], *args, **kwargs)
+    return _export_wamit_mean_drift(dataset["mean_drift_force_near_field"], *args, **kwargs)
 
 ###############################################################################
 

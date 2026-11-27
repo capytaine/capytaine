@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Tests for the mesh/dofs export added to `fill_dataset`/`assemble_dataset`
-via the `mesh=True` keyword (`mesh_vertices`, `mesh_faces_center`,
-`lid_mesh_vertices`, `lid_mesh_faces_center`, `dof_motions` and
-`dof_gradient_of_motions` dataset variables).
+via the `mesh=True` keyword (`mesh_hull_vertices`, `mesh_hull_faces_centers`,
+`mesh_lid_vertices`, `mesh_lid_faces_centers`, `dof_motion` and
+`dof_gradient_of_motion` dataset variables).
 """
 
 import numpy as np
@@ -33,58 +33,69 @@ def test_mesh_vertices_and_faces_center():
 
     nb_faces = sphere.mesh.nb_faces
     assert dataset.sizes["hull_face"] == nb_faces
-    assert dataset["mesh_vertices"].dims == ("hull_face", "vertices_of_face", "space_coordinate")
-    assert dataset["mesh_vertices"].shape[0] == nb_faces
-    assert dataset["mesh_faces_center"].dims == ("hull_face", "space_coordinate")
-    np.testing.assert_allclose(dataset["mesh_faces_center"].values, sphere.mesh.faces_centers)
+    assert dataset["mesh_hull_vertices"].dims == ("hull_face", "vertices_of_face", "space_coordinate")
+    assert dataset["mesh_hull_vertices"].shape[0] == nb_faces
+    assert dataset["mesh_hull_faces_centers"].dims == ("hull_face", "space_coordinate")
+    np.testing.assert_allclose(dataset["mesh_hull_faces_centers"].values, sphere.mesh.faces_centers)
     assert "quadrature_method" in dataset.coords
-    assert "lid_mesh_vertices" not in dataset
-    assert "lid_mesh_faces_center" not in dataset
+    assert "mesh_lid_vertices" not in dataset
+    assert "mesh_lid_faces_centers" not in dataset
 
 
 def test_mesh_export_shares_hull_face_dimension_with_pressure():
     sphere = helpers.small_sphere_body("rigid")
     solver = helpers.solver()
-    # mesh_faces_center should let an external reader recover the position of
+    # mesh_hull_faces_centers should let an external reader recover the position of
     # each `hull_face` index used by the pressure variables.
     test_matrix = xr.Dataset(coords={'omega': [1.0], 'radiating_dof': ['Heave']})
     dataset = solver.fill_dataset(test_matrix, sphere, mesh=True, keep_details=True, hydrostatics=False)
-    assert dataset["mesh_faces_center"].sizes["hull_face"] == dataset["pressure_radiation"].sizes["hull_face"]
+    assert dataset["mesh_hull_faces_centers"].sizes["hull_face"] == dataset["pressure_hull_radiation"].sizes["hull_face"]
 
 
-def test_dof_motions_matches_dof_evaluation():
+def test_dof_motion_matches_dof_evaluation():
     sphere = helpers.small_sphere_body("rigid")
     solver = helpers.solver()
     test_matrix = xr.Dataset(coords={'omega': [1.0], 'radiating_dof': ['Heave', 'Surge']})
     dataset = solver.fill_dataset(test_matrix, sphere, mesh=True, hydrostatics=False)
 
-    assert "influenced_dof" in dataset["dof_motions"].dims
+    assert "radiating_dof" in dataset["dof_motion"].dims
     np.testing.assert_allclose(
-            dataset["dof_motions"].sel(influenced_dof="Heave").values,
+            dataset["dof_motion"].sel(radiating_dof="Heave").values,
             sphere.dofs["Heave"].evaluate_motion(sphere.mesh),
             )
     np.testing.assert_allclose(
-            dataset["dof_motions"].sel(influenced_dof="Surge").values,
+            dataset["dof_motion"].sel(radiating_dof="Surge").values,
             sphere.dofs["Surge"].evaluate_motion(sphere.mesh),
             )
 
 
-def test_dof_gradient_of_motions():
+def test_dof_motion_of_subset_of_radiating_dofs():
+    # The motions are stored for the radiating dofs of the dataset only,
+    # such that the other variables are not padded with NaN for the other dofs.
+    sphere = helpers.small_sphere_body("rigid")
+    solver = helpers.solver()
+    test_matrix = xr.Dataset(coords={'omega': [1.0], 'radiating_dof': ['Heave', 'Surge']})
+    dataset = solver.fill_dataset(test_matrix, sphere, mesh=True, hydrostatics=False)
+    assert set(dataset.coords["radiating_dof"].values) == {'Heave', 'Surge'}
+    assert not np.any(np.isnan(dataset["added_mass"].values))
+
+
+def test_dof_gradient_of_motion():
     sphere = helpers.small_sphere_body("rigid")
     solver = helpers.solver()
     test_matrix = xr.Dataset(coords={'omega': [1.0], 'radiating_dof': ['Heave', 'Roll']})
     dataset = solver.fill_dataset(test_matrix, sphere, mesh=True, hydrostatics=False)
 
-    grad = dataset["dof_gradient_of_motions"]
-    assert grad.dims == ("influenced_dof", "hull_face", "space_coordinate", "gradient")
+    grad = dataset["dof_gradient_of_motion"]
+    assert grad.dims == ("radiating_dof", "hull_face", "vector_component", "derivative_direction")
     assert not np.issubdtype(grad.dtype, np.complexfloating)
 
     # Heave is a rigid translation: the gradient of its motion is exactly zero everywhere.
-    np.testing.assert_allclose(grad.sel(influenced_dof="Heave").values, 0.0)
+    np.testing.assert_allclose(grad.sel(radiating_dof="Heave").values, 0.0)
 
     # Roll is a rotation: the gradient should match evaluate_gradient_of_motion directly.
     np.testing.assert_allclose(
-            grad.sel(influenced_dof="Roll").values,
+            grad.sel(radiating_dof="Roll").values,
             sphere.dofs["Roll"].evaluate_gradient_of_motion(sphere.mesh),
             )
 
@@ -96,13 +107,13 @@ def test_mesh_export_with_raw_array_dof():
     test_matrix = xr.Dataset(coords={'omega': [1.0], 'radiating_dof': ['Heave', 'LegacyCustom']})
     dataset = solver.fill_dataset(test_matrix, sphere, mesh=True, hydrostatics=False)
 
-    np.testing.assert_allclose(dataset["dof_motions"].sel(influenced_dof="LegacyCustom").values, 1.0)
+    np.testing.assert_allclose(dataset["dof_motion"].sel(radiating_dof="LegacyCustom").values, 1.0)
     # No analytic gradient is available for a plain-array dof: filled with NaN,
     # and it should not force the whole variable to a complex dtype.
-    custom_grad = dataset["dof_gradient_of_motions"].sel(influenced_dof="LegacyCustom")
+    custom_grad = dataset["dof_gradient_of_motion"].sel(radiating_dof="LegacyCustom")
     assert not np.issubdtype(custom_grad.dtype, np.complexfloating)
     assert np.all(np.isnan(custom_grad.values))
-    heave_grad = dataset["dof_gradient_of_motions"].sel(influenced_dof="Heave")
+    heave_grad = dataset["dof_gradient_of_motion"].sel(radiating_dof="Heave")
     assert np.all(np.isfinite(heave_grad.values))
 
 
@@ -116,8 +127,8 @@ def test_mesh_export_with_lid():
     dataset = solver.fill_dataset(test_matrix, body, mesh=True, hydrostatics=False)
 
     assert dataset.sizes["lid_face"] == lid_mesh.nb_faces
-    assert dataset["lid_mesh_vertices"].dims == ("lid_face", "vertices_of_face", "space_coordinate")
-    np.testing.assert_allclose(dataset["lid_mesh_faces_center"].values, lid_mesh.faces_centers)
+    assert dataset["mesh_lid_vertices"].dims == ("lid_face", "vertices_of_face", "space_coordinate")
+    np.testing.assert_allclose(dataset["mesh_lid_faces_centers"].values, lid_mesh.faces_centers)
     # The hull-only dimension should not be affected by the lid.
     assert dataset.sizes["hull_face"] == body.mesh.nb_faces
 
@@ -134,7 +145,7 @@ def test_mesh_export_with_multibody_dof_on_submesh():
     assert dataset.sizes["hull_face"] == both.mesh.nb_faces
     for dof_name, dof in both.dofs.items():
         np.testing.assert_allclose(
-                dataset["dof_motions"].sel(influenced_dof=dof_name).values,
+                dataset["dof_motion"].sel(radiating_dof=dof_name).values,
                 dof.evaluate_motion(both.mesh),
                 )
 
@@ -149,9 +160,9 @@ def test_mesh_export_with_symmetric_mesh():
 
     assert dataset.sizes["hull_face"] == sym_mesh.nb_faces
     assert dataset.coords["quadrature_method"].values.item() == str(sym_mesh.quadrature_method)
-    np.testing.assert_allclose(dataset["mesh_faces_center"].values, sym_mesh.faces_centers)
+    np.testing.assert_allclose(dataset["mesh_hull_faces_centers"].values, sym_mesh.faces_centers)
     np.testing.assert_allclose(
-            dataset["dof_motions"].sel(influenced_dof="Heave").values,
+            dataset["dof_motion"].sel(radiating_dof="Heave").values,
             sym_body.dofs["Heave"].evaluate_motion(sym_body.mesh),
             )
 
@@ -160,5 +171,13 @@ def test_mesh_export_with_symmetric_mesh():
     # the dataset carries no indication that the original mesh was symmetric.
     merged_body = cpt.FloatingBody(mesh=sym_mesh.merged(), dofs=cpt.rigid_body_dofs(only=["Heave"]), name="merged_body")
     merged_dataset = solver.fill_dataset(test_matrix, merged_body, mesh=True, hydrostatics=False)
-    np.testing.assert_allclose(dataset["mesh_vertices"].values, merged_dataset["mesh_vertices"].values)
-    np.testing.assert_allclose(dataset["mesh_faces_center"].values, merged_dataset["mesh_faces_center"].values)
+    np.testing.assert_allclose(dataset["mesh_hull_vertices"].values, merged_dataset["mesh_hull_vertices"].values)
+    np.testing.assert_allclose(dataset["mesh_hull_faces_centers"].values, merged_dataset["mesh_hull_faces_centers"].values)
+
+
+def test_load_mesh_from_dataset():
+    sphere = helpers.small_sphere_body("rigid")
+    test_matrix = xr.Dataset(coords={'omega': [1.0], 'radiating_dof': ['Heave']})
+    dataset = helpers.solver().fill_dataset(test_matrix, sphere, mesh=True, hydrostatics=False)
+    mesh = cpt.load_mesh(dataset)
+    np.testing.assert_allclose(mesh.faces_centers, sphere.mesh.faces_centers)

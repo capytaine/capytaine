@@ -20,20 +20,26 @@ Major changes
 
 * **Mean drift force**:
 
-   * Add :func:`~capytaine.post_pro.mean_drift_force.near_field_mean_drift_force` to compute the mean drift force, for any dofs of a :class:`~capytaine.bodies.bodies.FloatingBody` or a :class:`~capytaine.bodies.multibodies.Multibody` (rigid body motions or generalized modes with a gradient of motion). See :doc:`user_manual/post_pro` and cookbook example B9 for details. (:pull:`871`, :pull:`970`)
+   * Add :func:`~capytaine.post_pro.mean_drift_force.compute_near_field_mean_drift_force` to compute the mean drift force, for any dofs of a :class:`~capytaine.bodies.bodies.FloatingBody` or a :class:`~capytaine.bodies.multibodies.Multibody` (rigid body motions or generalized modes with a gradient of motion). See :doc:`user_manual/post_pro` and cookbook example B9 for details. (:pull:`871`, :pull:`970`)
 
-   * :func:`~capytaine.post_pro.mean_drift_force.near_field_mean_drift_force` has an optional parameter ``output_pressure`` allowing to return second-order pressure field on the hull and waterline fields. See cookbook example B10 for an example of use. (:pull:`949`, :pull:`959`)
+   * :func:`~capytaine.post_pro.mean_drift_force.compute_near_field_mean_drift_force` has an optional parameter ``output_pressure`` allowing to return second-order pressure field on the hull and waterline fields. See cookbook example B10 for an example of use. (:pull:`949`, :pull:`959`)
 
    * The near field mean drift force can be exported to WAMIT's `.9` file format. (:pull:`909`)
+
+   * Add :func:`~capytaine.post_pro.mean_drift_force.compute_far_field_mean_drift_force`, replacing :func:`~capytaine.post_pro.mean_drift_force.far_field_mean_drift_force`, which is deprecated but still returns the same output as in version 3.0.
+     The new function returns a single variable ``mean_drift_force_far_field`` with the same dimensions as the near field mean drift force: ``wave_direction`` and ``other_wave_direction`` (formerly ``wave_direction_k`` and ``wave_direction_l``) and ``influenced_dof`` (``Surge``, ``Sway`` and ``Yaw``) instead of three variables ``drift_force_surge``, ``drift_force_sway`` and ``drift_force_yaw``.
+     Both functions are available at the top level of the ``capytaine`` namespace, with the signatures ``compute_far_field_mean_drift_force(dataset, *, rao)``
+     and ``compute_near_field_mean_drift_force(dataset, body, *, rao, solver=None, output_pressure=False)``.
 
 * **More data in xarray dataset**:
 
    * :func:`~capytaine.io.xarray.assemble_dataset` and :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` can now include in the output dataset the pressure field on the hull as well as the source distribution for the indirect solver or the potential field for the direct solver.
      They are included in the dataset by ``assemble_dataset(results)`` automatically if :meth:`~capytaine.bem.solver.BEMSolver.solve` and :meth:`~capytaine.bem.solver.BEMSolver.solve_all` kept this data in the `results` object with their ``keep_details`` argument.
-     The method :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` has a new keyword argument ``keep_details`` (default: ``False``) to keep the mesh data after the BEM resolutions and thus pass them to :func:`~capytaine.io.xarray.assemble_dataset`.
+     The method :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` has a new keyword argument ``keep_details`` (default: ``False``, to limit the memory usage) to keep the mesh data after the BEM resolutions and thus pass them to :func:`~capytaine.io.xarray.assemble_dataset`.
+     The pressures on the hull are stored as ``pressure_hull_diffraction``, ``pressure_hull_incident`` and ``pressure_hull_radiation``.
      See :doc:`user_manual/post_pro` for more details. (:pull:`945`)
 
-   * The ``mesh=True`` option of :func:`~capytaine.io.xarray.assemble_dataset` and :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` now stores the full mesh of the hull (and lid, if any) and the dofs of the body in the dataset, as the variables ``mesh_vertices``, ``mesh_faces_center``, ``lid_mesh_vertices``, ``lid_mesh_faces_center``, ``dof_motions`` and ``dof_gradient_of_motions``. See :doc:`user_manual/post_pro` for more details. (:pull:`947`)
+   * The ``mesh=True`` option of :func:`~capytaine.io.xarray.assemble_dataset` and :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` now stores the full mesh of the hull (and lid, if any) and the dofs of the body in the dataset, as the variables ``mesh_hull_vertices``, ``mesh_hull_faces_centers``, ``mesh_lid_vertices``, ``mesh_lid_faces_centers``, ``dof_motion`` and ``dof_gradient_of_motion``. See :doc:`user_manual/post_pro` for more details. (:pull:`947`)
      Symmetries are currently not supported, the stored mesh is the full unfolded mesh.
 
 * Add a :class:`~capytaine.bodies.dofs.CustomDof` to define **generalized body mode**.
@@ -65,6 +71,12 @@ Minor changes
 
    * :meth:`~capytaine.ui.vedo_animations.Animation.add_body` and :meth:`~capytaine.ui.vedo_animations.Animation.add_free_surface` accept new keyword arguments ``color``, ``edge_color`` and ``cmap`` to customize the colors of the animation.
      The ``axes`` parameter of ``vedo.Plotter`` can now be passed to :meth:`~capytaine.ui.vedo_animations.Animation.run` and :meth:`~capytaine.ui.vedo_animations.Animation.save` (e.g. ``axes=0`` to hide the axes). (:pull:`989`)
+
+* **Naming**:
+
+   * The argument ``bodies`` of :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` is renamed ``body``, since only a single body is accepted since version 3.0. The former name is still accepted as a keyword argument, with a deprecation warning.
+     The argument ``pb`` of the functions of :mod:`capytaine.bem.airy_waves` is renamed ``problem``.
+     See the new page :doc:`developer_manual/naming_conventions`.
 
 
 Bug fixes
@@ -98,6 +110,13 @@ Bug fixes
   Unsupported combinations of frequency and ``gf_singularities`` now raise a ``NotImplementedError`` instead of returning wrong results. (:pull:`983`)
 
 * Fix wrong inertia matrix for non-neutrally buoyant bodies (when ``mass`` is manually specified by the user) (:issue:`992`, :pull:`994`).
+
+* :meth:`~capytaine.meshes.abstract_meshes.AbstractMesh.immersed_part` ignored its ``free_surface`` argument and always clipped the mesh at :math:`z=0`.
+
+* :meth:`~capytaine.bodies.multibodies.Multibody.immersed_part` ignored all its arguments (``free_surface``, ``water_depth``, ``name``): they are now forwarded to the component bodies.
+
+* :meth:`~capytaine.bodies.multibodies.Multibody.compute_rigid_body_inertia` now takes ``rho`` as a keyword-only argument, as :meth:`~capytaine.bodies.bodies.FloatingBody.compute_rigid_body_inertia` does (passing it as a positional argument is deprecated).
+  Its ``output_type`` argument is accepted but only ``"body_dofs"`` is supported for a Multibody.
 
 Internals
 ~~~~~~~~~
@@ -181,13 +200,13 @@ Internals
      holds complex amplitudes for several wave components at once, and computes the full
      difference-frequency QTF of an expression in one evaluation.
      First-order quantities are built with :meth:`~capytaine.tools.perturbation_expansion.DifferenceFrequencyExpansion.first_order`.
-     :func:`~capytaine.post_pro.mean_drift_force.near_field_mean_drift_force` is now computed with :class:`~capytaine.tools.perturbation_expansion.DifferenceFrequencyExpansion`,
+     :func:`~capytaine.post_pro.mean_drift_force.compute_near_field_mean_drift_force` is now computed with :class:`~capytaine.tools.perturbation_expansion.DifferenceFrequencyExpansion`,
      from the unexpanded integral of the pressure on the moving body, for any dofs
      with a gradient of motion, with the help of
      :meth:`~capytaine.bodies.bodies.FloatingBody.integrate_pressure_on_moving_body`
      and
      :meth:`~capytaine.bodies.bodies.FloatingBody.integrate_pressure_on_waterline`.
-     Add the properties ``middle_edges_waterline``, ``normals_edges_waterline`` and ``indices_faces_waterline`` to the meshes. (:pull:`962`)
+     Add the properties ``waterline_edges_centers``, ``waterline_edges_normals`` and ``waterline_faces_indices`` to the meshes. (:pull:`962`)
 
    * Add the private methods ``BEMSolver._compute_potential_from_sources`` and ``BEMSolver._compute_potential_gradient_from_sources``, evaluating the potential or its gradient from bare source distributions (given with the mesh and the Green function parameters, without a result object).
      The sources can have leading batch axes, in which case the influence matrix is built only once and multiplied by all the source distributions at once.
