@@ -103,3 +103,11 @@ class Timer:
     @property
     def total(self):
         return self.as_dataframe()['timing'].sum()
+
+
+def age():
+    from datetime import datetime
+    from dateutil.relativedelta import relativedelta
+    first_commit = datetime.fromisoformat("2017-08-10T17:26:45+01:00")
+    r = relativedelta(datetime.now(first_commit.tzinfo), first_commit)
+    return f"Age of the capytaine: {r.years} years, {r.months} months and {r.days} days"
