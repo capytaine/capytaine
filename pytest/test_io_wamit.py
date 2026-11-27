@@ -24,7 +24,7 @@ import pytest
 import capytaine as cpt
 import capytaine_test_helpers as helpers
 from capytaine.io.wamit import export_to_wamit, export_wamit_8, export_wamit_9
-from capytaine.post_pro.mean_drift_force import far_field_mean_drift_force, near_field_mean_drift_force
+from capytaine.post_pro.mean_drift_force import far_field_mean_drift_force
 
 @pytest.fixture
 def full_dataset():
@@ -354,9 +354,8 @@ def test_export_wamit_8(tmpdir):
     solver = helpers.solver()
     dataset = solver.fill_dataset(test_matrix, immersed_body)
 
-    X = cpt.post_pro.rao(dataset)
-    drift_ds = far_field_mean_drift_force(X, dataset)
-    dataset = xr.merge([dataset, drift_ds])
+    rao = cpt.post_pro.rao(dataset)
+    dataset.update(cpt.compute_far_field_mean_drift_force(dataset, rao=rao))
 
     filepath = str(tmpdir / "drift_test.8")
     export_wamit_8(dataset, filepath)
@@ -409,6 +408,22 @@ def test_export_wamit_8_missing_field(tmpdir):
         export_wamit_8(ds, filepath)
 
 
+def test_export_wamit_8_of_deprecated_far_field_output(tmpdir):
+    """The .8 export also accepts the output of the deprecated far_field_mean_drift_force."""
+    mesh = cpt.mesh_sphere(resolution=(4, 4)).immersed_part()
+    body = cpt.FloatingBody(mesh, cpt.rigid_body_dofs(rotation_center=(0, 0, 0)), center_of_mass=(0, 0, 0))
+    test_matrix = xr.Dataset(coords={
+        "omega": [1.0], "wave_direction": [0.0, np.pi / 4], "radiating_dof": list(body.dofs),
+        "theta": np.linspace(-np.pi, 2 * np.pi, 40),
+    })
+    dataset = helpers.solver().fill_dataset(test_matrix, body, hydrostatics=True)
+    rao = cpt.post_pro.rao(dataset)
+
+    export_wamit_8(dataset.merge(cpt.compute_far_field_mean_drift_force(dataset, rao=rao), join="left"), str(tmpdir / "new.8"))
+    export_wamit_8(xr.merge([dataset, far_field_mean_drift_force(rao, dataset)]), str(tmpdir / "legacy.8"))
+    assert (tmpdir / "new.8").read() == (tmpdir / "legacy.8").read()
+
+
 def test_export_wamit_8_while_exporting_everything(tmpdir):
     """Test that .8 export works through the master export_to_wamit function."""
     mesh = cpt.mesh_sphere(resolution=(4, 4))
@@ -432,9 +447,8 @@ def test_export_wamit_8_while_exporting_everything(tmpdir):
     solver = helpers.solver()
     dataset = solver.fill_dataset(test_matrix, immersed_body)
 
-    X = cpt.post_pro.rao(dataset)
-    drift_ds = far_field_mean_drift_force(X, dataset)
-    dataset = xr.merge([dataset, drift_ds])
+    rao = cpt.post_pro.rao(dataset)
+    dataset.update(cpt.compute_far_field_mean_drift_force(dataset, rao=rao))
 
     problem_name = str(tmpdir / "master_test")
     export_to_wamit(dataset, problem_name=problem_name, exports=("8",))
@@ -462,7 +476,7 @@ def dataset_with_near_field_mean_drift_force():
         })
     dataset = solver.fill_dataset(test_matrix, body, keep_details=True)
     rao = cpt.post_pro.rao(dataset)
-    mdf = near_field_mean_drift_force(rao, dataset, body, solver=solver)
+    mdf = cpt.compute_near_field_mean_drift_force(dataset, body, rao=rao, solver=solver)
     return xr.merge([dataset, mdf])
 
 

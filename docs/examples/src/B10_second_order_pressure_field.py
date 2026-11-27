@@ -8,7 +8,6 @@ import matplotlib.animation as animation
 from scipy.spatial import cKDTree
 
 import capytaine as cpt
-from capytaine.post_pro.mean_drift_force import near_field_mean_drift_force
 
 full_mesh = cpt.mesh_parallelepiped(resolution=(30, 30, 30))
 mesh = full_mesh.immersed_part()
@@ -27,7 +26,7 @@ test_matrix = xr.Dataset(coords={
 solver = cpt.BEMSolver()
 ds = solver.fill_dataset(test_matrix, body, keep_details=True)
 rao = cpt.post_pro.rao(ds)
-ds.update(near_field_mean_drift_force(rao, ds, body, solver=solver, output_pressure=True))
+ds.update(cpt.compute_near_field_mean_drift_force(ds, body, rao=rao, solver=solver, output_pressure=True))
 
 # The sea is made of the two waves, with the same frequency.
 # Their complex amplitudes set their heights and their phases (at the origin, at t=0).
@@ -59,10 +58,9 @@ first_order_pressure_full_mesh = remap_from_mesh_to_full_mesh(first_order_pressu
 
 # ========================= SECOND ORDER HULL PRESSURE =========================
 # Sum over all pairs of waves of the difference-frequency QTF
-amplitude_kl = (amplitude.rename({"wave_direction": "wave_direction_k"})
-                    * np.conjugate(amplitude.rename({"wave_direction": "wave_direction_l"})))
+amplitude_kl = amplitude * np.conjugate(amplitude.rename({"wave_direction": "other_wave_direction"}))
 mean_drift_hull_pressure_per_pair_of_waves = amplitude_kl * ds["pressure_hull_mean_drift"]
-mean_drift_hull_pressure = mean_drift_hull_pressure_per_pair_of_waves.sum(dim=["wave_direction_k", "wave_direction_l"])
+mean_drift_hull_pressure = mean_drift_hull_pressure_per_pair_of_waves.sum(dim=["wave_direction", "other_wave_direction"])
 # dims = (wavelength, hull_face)
 assert np.max(np.abs(mean_drift_hull_pressure.values.imag)) < 1e-10
 mean_drift_hull_pressure = mean_drift_hull_pressure.real  # Time independent pressure
@@ -73,13 +71,12 @@ mean_drift_hull_pressure_full_mesh = remap_from_mesh_to_full_mesh(mean_drift_hul
 # ====================== SECOND ORDER WATERLINE PRESSURE =======================
 def mean_of_product(a, b):
     # Difference-frequency QTF of the product of the first order fields a and b,
-    # 1/4 (a_k conj(b_l) + conj(a_l) b_k), summed over all pairs of waves (k, l).
-    a_k = a.rename({"wave_direction": "wave_direction_k"})
-    a_l = a.rename({"wave_direction": "wave_direction_l"})
-    b_k = b.rename({"wave_direction": "wave_direction_k"})
-    b_l = b.rename({"wave_direction": "wave_direction_l"})
-    qtf = (a_k * np.conjugate(b_l) + np.conjugate(a_l) * b_k) / 4
-    return qtf.sum(["wave_direction_k", "wave_direction_l"]).real  # The imaginary part is zero.
+    # 1/4 (a_k conj(b_l) + conj(a_l) b_k), summed over all pairs of waves (k, l),
+    # with k along "wave_direction" and l along "other_wave_direction".
+    a_l = a.rename({"wave_direction": "other_wave_direction"})
+    b_l = b.rename({"wave_direction": "other_wave_direction"})
+    qtf = (a * np.conjugate(b_l) + np.conjugate(a_l) * b) / 4
+    return qtf.sum(["wave_direction", "other_wave_direction"]).real  # The imaginary part is zero.
 
 
 def remap_waterline_pressure(amplitude, pressure_waterline_total, relative_elevation_waterline, mesh_waterline, box_mesh):
@@ -104,9 +101,9 @@ def remap_waterline_pressure(amplitude, pressure_waterline_total, relative_eleva
     amplitude: DataArray with dims (..., wave_direction), complex
         Complex amplitude of each wave, possibly with other dimensions such as `wavelength`.
     pressure_waterline_total, relative_elevation_waterline: DataArrays with dims (..., wave_direction, waterline_segment), complex
-        Outputs of `near_field_mean_drift_force(..., output_pressure=True)`, for a unit amplitude.
+        Outputs of `compute_near_field_mean_drift_force(..., output_pressure=True)`, for a unit amplitude.
     mesh_waterline: DataArray with dims (waterline_segment, 2, 3)
-        Output of `near_field_mean_drift_force(..., output_pressure=True)`.
+        Output of `compute_near_field_mean_drift_force(..., output_pressure=True)`.
     box_mesh: Mesh
         Mesh of the whole box, including its part above the waterline, with the same horizontal resolution as the
         immersed mesh.

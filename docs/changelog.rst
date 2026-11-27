@@ -20,11 +20,16 @@ Major changes
 
 * **Mean drift force**:
 
-   * Add :func:`~capytaine.post_pro.mean_drift_force.near_field_mean_drift_force` to compute the mean drift force, for any dofs of a :class:`~capytaine.bodies.bodies.FloatingBody` or a :class:`~capytaine.bodies.multibodies.Multibody` (rigid body motions or generalized modes with a gradient of motion). See :doc:`user_manual/post_pro` and cookbook example B9 for details. (:pull:`871`, :pull:`970`)
+   * Add :func:`~capytaine.post_pro.mean_drift_force.compute_near_field_mean_drift_force` to compute the mean drift force, for any dofs of a :class:`~capytaine.bodies.bodies.FloatingBody` or a :class:`~capytaine.bodies.multibodies.Multibody` (rigid body motions or generalized modes with a gradient of motion). See :doc:`user_manual/post_pro` and cookbook example B9 for details. (:pull:`871`, :pull:`970`)
 
-   * :func:`~capytaine.post_pro.mean_drift_force.near_field_mean_drift_force` has an optional parameter ``output_pressure`` allowing to return second-order pressure field on the hull and waterline fields. See cookbook example B10 for an example of use. (:pull:`949`, :pull:`959`)
+   * :func:`~capytaine.post_pro.mean_drift_force.compute_near_field_mean_drift_force` has an optional parameter ``output_pressure`` allowing to return second-order pressure field on the hull and waterline fields. See cookbook example B10 for an example of use. (:pull:`949`, :pull:`959`)
 
    * The near field mean drift force can be exported to WAMIT's `.9` file format. (:pull:`909`)
+
+   * Add :func:`~capytaine.post_pro.mean_drift_force.compute_far_field_mean_drift_force`, replacing :func:`~capytaine.post_pro.mean_drift_force.far_field_mean_drift_force`, which is deprecated but still returns the same output as in version 3.0.
+     The new function returns a single variable ``mean_drift_force_far_field`` with the same dimensions as the near field mean drift force: ``wave_direction`` and ``other_wave_direction`` (formerly ``wave_direction_k`` and ``wave_direction_l``) and ``influenced_dof`` (``Surge``, ``Sway`` and ``Yaw``) instead of three variables ``drift_force_surge``, ``drift_force_sway`` and ``drift_force_yaw``.
+     Both functions are available at the top level of the ``capytaine`` namespace, with the signatures ``compute_far_field_mean_drift_force(dataset, *, rao)``
+     and ``compute_near_field_mean_drift_force(dataset, body, *, rao, solver=None, output_pressure=False)``.
 
 * **More data in xarray dataset**:
 
@@ -181,7 +186,7 @@ Internals
      holds complex amplitudes for several wave components at once, and computes the full
      difference-frequency QTF of an expression in one evaluation.
      First-order quantities are built with :meth:`~capytaine.tools.perturbation_expansion.DifferenceFrequencyExpansion.first_order`.
-     :func:`~capytaine.post_pro.mean_drift_force.near_field_mean_drift_force` is now computed with :class:`~capytaine.tools.perturbation_expansion.DifferenceFrequencyExpansion`,
+     :func:`~capytaine.post_pro.mean_drift_force.compute_near_field_mean_drift_force` is now computed with :class:`~capytaine.tools.perturbation_expansion.DifferenceFrequencyExpansion`,
      from the unexpanded integral of the pressure on the moving body, for any dofs
      with a gradient of motion, with the help of
      :meth:`~capytaine.bodies.bodies.FloatingBody.integrate_pressure_on_moving_body`
