@@ -11,6 +11,11 @@ For older changelogs, see:
    changelog_from_2_to_3
    changelog_before_2
 
+.. contents::
+   :local:
+   :depth: 1
+   :backlinks: none
+
 -------------------------------
 New in version 3.1 (2026-??-??)
 -------------------------------
@@ -26,18 +31,18 @@ Major changes
 
    * The near field mean drift force can be exported to WAMIT's `.9` file format. (:pull:`909`)
 
-   * Add :func:`~capytaine.post_pro.mean_drift_force.compute_far_field_mean_drift_force`, replacing :func:`~capytaine.post_pro.mean_drift_force.far_field_mean_drift_force`, which is deprecated but still returns the same output as in version 3.0.
-     The new function returns a single variable ``mean_drift_force_far_field`` with the same dimensions as the near field mean drift force: ``wave_direction`` and ``other_wave_direction`` (formerly ``wave_direction_k`` and ``wave_direction_l``) and ``influenced_dof`` (``Surge``, ``Sway`` and ``Yaw``) instead of three variables ``drift_force_surge``, ``drift_force_sway`` and ``drift_force_yaw``.
-     Both functions are available at the top level of the ``capytaine`` namespace, with the signatures ``compute_far_field_mean_drift_force(dataset, *, rao)``
-     and ``compute_near_field_mean_drift_force(dataset, body, *, rao, solver=None, output_pressure=False)``.
+   * Add :func:`~capytaine.post_pro.mean_drift_force.compute_far_field_mean_drift_force` compute the far-field mean drift force with inputs and outputs similar to the new :func:`~capytaine.post_pro.mean_drift_force.compute_near_field_mean_drift_force`.
+     The former :func:`~capytaine.post_pro.mean_drift_force.far_field_mean_drift_force` is deprecated but still returns the same output as in version 3.0.
 
 * **More data in xarray dataset**:
 
    * :func:`~capytaine.io.xarray.assemble_dataset` and :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` can now include in the output dataset the pressure field on the hull as well as the source distribution for the indirect solver or the potential field for the direct solver.
-     They are included in the dataset by ``assemble_dataset(results)`` automatically if :meth:`~capytaine.bem.solver.BEMSolver.solve` and :meth:`~capytaine.bem.solver.BEMSolver.solve_all` kept this data in the `results` object with their ``keep_details`` argument.
-     The method :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` has a new keyword argument ``keep_details`` (default: ``False``, to limit the memory usage) to keep the mesh data after the BEM resolutions and thus pass them to :func:`~capytaine.io.xarray.assemble_dataset`.
-     The pressures on the hull are stored as ``pressure_hull_diffraction``, ``pressure_hull_incident`` and ``pressure_hull_radiation``.
-     See :doc:`user_manual/post_pro` for more details. (:pull:`945`)
+
+     * ``assemble_dataset(results)`` includes them automatically if they are available in the ``results``, that is if :meth:`~capytaine.bem.solver.BEMSolver.solve` or :meth:`~capytaine.bem.solver.BEMSolver.solve_all` were run with ``keep_details=True``.
+
+     * :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` has a new keyword argument ``keep_details`` (default: ``False``, to limit the memory usage) to keep the mesh data after the BEM resolutions and thus pass them to :func:`~capytaine.io.xarray.assemble_dataset`.
+
+   See :doc:`user_manual/post_pro` for more details. (:pull:`945`)
 
    * The ``mesh=True`` option of :func:`~capytaine.io.xarray.assemble_dataset` and :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` now stores the full mesh of the hull (and lid, if any) and the dofs of the body in the dataset, as the variables ``mesh_hull_vertices``, ``mesh_hull_faces_centers``, ``mesh_lid_vertices``, ``mesh_lid_faces_centers``, ``dof_motion`` and ``dof_gradient_of_motion``. See :doc:`user_manual/post_pro` for more details. (:pull:`947`)
      Symmetries are currently not supported, the stored mesh is the full unfolded mesh.
