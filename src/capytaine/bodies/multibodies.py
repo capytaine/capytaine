@@ -166,10 +166,11 @@ class Multibody(AbstractBody):
     def nb_dofs(self):
         return len(self.dofs)
 
-    def immersed_part(self, *args, **kwargs):
+    def immersed_part(self, free_surface=0.0, *, sea_bottom=None, water_depth=None, name=None) -> Multibody:
         new_multibody = Multibody(
-                [b.immersed_part() for b in self.bodies],
+                [b.immersed_part(free_surface, sea_bottom=sea_bottom, water_depth=water_depth) for b in self.bodies],
                 # own_dofs=None,  # TODO
+                name=self._name if name is None else name,
                 )
         if hasattr(self, 'inertia_matrix'):
             new_multibody.inertia_matrix = self.inertia_matrix
@@ -218,7 +219,16 @@ class Multibody(AbstractBody):
     def compute_hydrostatic_stiffness(self, *, rho=1000.0, g=9.81):
         return self._combine_component_matrices([b.compute_hydrostatic_stiffness(rho=rho, g=g) for b in self.bodies])
 
-    def compute_rigid_body_inertia(self, rho=1000.0):
+    def compute_rigid_body_inertia(self, *args, rho=1000.0, output_type="body_dofs"):
+        if len(args) > 0:  # Former signature `compute_rigid_body_inertia(self, rho=1000.0)`
+            if len(args) > 1:
+                raise TypeError(f"compute_rigid_body_inertia() takes no positional arguments but {len(args)} were given")
+            LOG.warning("Deprecation warning: passing `rho` as a positional argument of `compute_rigid_body_inertia` is deprecated, "
+                        "please use `compute_rigid_body_inertia(rho=...)`.")
+            rho = args[0]
+        if output_type != "body_dofs":
+            raise NotImplementedError(f"`output_type={output_type!r}` of `compute_rigid_body_inertia` is not supported for a Multibody, "
+                                      "only `output_type=\"body_dofs\"` is.")
         return self._combine_component_matrices([b.compute_rigid_body_inertia(rho=rho) for b in self.bodies])
 
     # --- Geometric transforms ---

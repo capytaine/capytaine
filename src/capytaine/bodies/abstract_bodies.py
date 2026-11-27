@@ -16,7 +16,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Literal, List, Union, Tuple
+from typing import Literal
 
 import numpy as np
 
@@ -90,7 +90,7 @@ class AbstractBody(ABC):
     def compute_hydrostatic_stiffness(self, *, rho=1000.0, g=9.81): ...
 
     @abstractmethod
-    def compute_rigid_body_inertia(self, rho=1000.0): ...
+    def compute_rigid_body_inertia(self, *, rho=1000.0, output_type="body_dofs"): ...
 
     @abstractmethod
     def _check_dofs_shape_consistency(self): ...
@@ -134,7 +134,7 @@ class AbstractBody(ABC):
     def clipped(self, *, origin, normal, name=None) -> AbstractBody: ...
 
     @abstractmethod
-    def immersed_part(self, free_surface=0.0, *, sea_botton=None, water_depth=None, name=None) -> AbstractBody: ...
+    def immersed_part(self, free_surface=0.0, *, sea_bottom=None, water_depth=None, name=None) -> AbstractBody: ...
 
     @abstractmethod
     def copy(self, name=None) -> AbstractBody: ...
