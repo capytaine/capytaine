@@ -25,6 +25,7 @@ Core features
 * Lid-based irregular frequencies removal.
 * Set up problems with either angular frequency, period, wavelength or angular wavenumber.
 * Post-processing computation of the pressure field, the velocity field, the free surface elevation and the Kochin function.
+* Near-field and far-field mean drift forces.
 * Computation of the hydrostatic stiffness and rigid body inertia. Non-neutrally buoyant bodies are partially supported.
 * Faster computation for plane-symmetric bodies or rotation symmetric bodies.
 * OpenMP threads parallelization, as well as optional processes parallelisation with joblib_.
@@ -48,7 +49,7 @@ For this kind of annex tools, the philosophy of Capytaine is to:
 Advanced features
 -----------------
 
-* A clean code with unit tests, meaningful variable names, comments, (almost) no Fortran 77, no global variables and no error message in French.
+* A clean code with unit tests, meaningful variable names, comments, no Fortran 77, no global variables and no error message in French.
 * Easy access to the internal of the solver through Python.
 * Direct (potential formulation) or indirect (source formulation) boundary integral equation.
 * Direct or iterative linear system solver.
