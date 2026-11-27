@@ -22,6 +22,8 @@ from capytaine.post_pro.impedance import rao_transfer_function
 LOG = logging.getLogger(__name__)
 
 
+# Naming: does not follow the `compute_<quantity>` scheme of the other post-processing functions.
+# Might be renamed `compute_rao` in the future, keeping `rao` as an alias.
 def rao(dataset, wave_direction=None, dissipation=None, stiffness=None):
     """Response Amplitude Operator.
 

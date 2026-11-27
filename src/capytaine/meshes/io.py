@@ -232,7 +232,10 @@ def _import_from_trimesh_mesh_class(trimesh_mesh):
 
 
 def _import_from_xarray_dataset(dataset):
-    return Mesh.from_list_of_faces(dataset["mesh_vertices"].values)
+    # `mesh_vertices` from `Mesh.export_to_xarray`,
+    # or `mesh_hull_vertices` from a dataset computed with `mesh=True`.
+    name = "mesh_vertices" if "mesh_vertices" in dataset else "mesh_hull_vertices"
+    return Mesh.from_list_of_faces(dataset[name].values)
 
 
 def _read_hst(file_obj: IOBase) -> Union[Mesh, ReflectionSymmetricMesh]:

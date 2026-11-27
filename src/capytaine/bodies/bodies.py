@@ -383,7 +383,7 @@ class FloatingBody(_FloatingBodyHydrostaticsMixin, AbstractBody):
         mesh = self.mesh.merged()  # The waterline data of symmetric meshes is computed on the merged mesh.
         motion = self._dofs_on_waterline()
         # The minus sign is because we want the force of the fluid on the body and not the force of the body on the fluid.
-        normal_dof_amplitude_on_waterline = -np.sum(motion * mesh.normals_edges_waterline, axis=-1) * mesh.length_edges_waterline  # (nb_dofs, nb_edges_waterline)
+        normal_dof_amplitude_on_waterline = -np.sum(motion * mesh.waterline_edges_normals, axis=-1) * mesh.length_edges_waterline  # (nb_dofs, nb_edges_waterline)
         return (pressure.expand_dims(-2) * normal_dof_amplitude_on_waterline).sum(-1)
 
     def keep_only_dofs(self, *args, **kwargs):

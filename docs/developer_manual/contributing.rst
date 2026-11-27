@@ -30,6 +30,8 @@ Before submitting a pull request, please take a look at the following points:
   Indentation is done with four spaces.
   Try to avoid trailing whitespaces whenever possible.
 
+- New functions should follow the :doc:`naming_conventions` of the existing interface.
+
 - See also AI policy in `AI policy <https://github.com/capytaine/capytaine/blob/master/CONTRIBUTING.md#ai-policy>`_.
 
 .. _`PEP8`: https://pep8.org/

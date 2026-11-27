@@ -30,16 +30,16 @@ def test_integration_on_rectangle(l, L, h):
     assert np.isclose(integral_rectangle, 2*(l+L))
 
 
-def test_indices_faces_waterline():
+def test_waterline_faces_indices():
     mesh = cpt.mesh_parallelepiped(size=(2, 3, 4), resolution=(4, 4, 4)).immersed_part()
-    assert mesh.indices_faces_waterline.shape == (mesh.nb_edges_waterline,)
-    faces = mesh.faces[mesh.indices_faces_waterline]
+    assert mesh.waterline_faces_indices.shape == (mesh.nb_edges_waterline,)
+    faces = mesh.faces[mesh.waterline_faces_indices]
     assert np.all(faces == mesh.faces_waterline)
     # Both ends of each edge are vertices of the face containing it.
     assert all(set(edge) <= set(face) for edge, face in zip(mesh.edges_waterline, faces))
-    assert np.allclose(mesh.faces_normals[mesh.indices_faces_waterline], mesh.normals_edges_waterline)
+    assert np.allclose(mesh.faces_normals[mesh.waterline_faces_indices], mesh.waterline_edges_normals)
 
 
-def test_indices_faces_waterline_of_submerged_mesh():
+def test_waterline_faces_indices_of_submerged_mesh():
     mesh = cpt.mesh_sphere(center=(0, 0, -3)).immersed_part()
-    assert mesh.indices_faces_waterline.shape == (0,)
+    assert mesh.waterline_faces_indices.shape == (0,)

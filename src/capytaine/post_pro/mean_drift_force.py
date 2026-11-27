@@ -238,9 +238,9 @@ def compute_near_field_mean_drift_force(
           ``mean_drift_force_near_field``: its diagonal is the mean pressure in a single wave of
           unit amplitude. It does not include the waterline term.
         - ``pressure_waterline_total``, of dimensions
-          ``(freq, wave_direction, waterline_segment)``: the complex first-order
+          ``(freq, wave_direction, waterline_edge)``: the complex first-order
           pressure ``p`` in the strip between the mean waterline and the free surface, at the
-          middle of each segment of the waterline, for a wave of unit amplitude.
+          middle of each edge of the waterline, for a wave of unit amplitude.
           It is the total pressure on the freely floating body: incident, diffracted and
           radiated (with the motion given by ``rao``) waves,
           as well as the hydrostatic pressure averaged over the height of the strip.
@@ -250,8 +250,8 @@ def compute_near_field_mean_drift_force(
           These two first-order fields depend on a single wave direction. Their mean product
           for a pair of waves can be computed by renaming ``wave_direction`` to
           ``other_wave_direction`` in a copy of them (see cookbook example B10).
-        - ``mesh_waterline``, of shape ``(nb_waterline_segments, 2, 3)``: the coordinates of
-          the two ends of each segment of the waterline.
+        - ``mesh_waterline_vertices``, of shape ``(nb_waterline_edges, 2, 3)``: the coordinates of
+          the two ends of each edge of the waterline.
     """
     if solver is None:
         from capytaine.bem.solver import BEMSolver  # Not at the top of the module, to avoid a circular import.
@@ -269,7 +269,7 @@ def compute_near_field_mean_drift_force(
     p0 = -rho * g * mesh.faces_centers[:, 2]  # (nb_faces,)
     grad_p0 = np.array([0.0, 0.0, -rho * g])
     vertical_dofs_motion_waterline = body._dofs_on_waterline()[:, :, 2]  # (nb_dofs, nb_edges_waterline)
-    inclination_waterline = np.sqrt(1 - mesh.normals_edges_waterline[:, 2]**2)  # (nb_edges_waterline,)
+    inclination_waterline = np.sqrt(1 - mesh.waterline_edges_normals[:, 2]**2)  # (nb_edges_waterline,)
 
     outputs_per_freq = []
     for i_freq in range(dataset.sizes[freq_type]):
@@ -329,8 +329,8 @@ def _first_order_fields_from_dataset(dataset, body, mesh, solver, q1):
     rho = float(dataset.coords["rho"])
     g = float(dataset.coords["g"])
     water_depth = float(dataset.coords["water_depth"])
-    p1_hull = (dataset["pressure_Froude_Krylov"] + dataset["pressure_diffraction"]).transpose("wave_direction", "hull_face").values
-    p1_hull = p1_hull + q1 @ dataset["pressure_radiation"].sel(radiating_dof=dofs).transpose("radiating_dof", "hull_face").values
+    p1_hull = (dataset["pressure_hull_incident"] + dataset["pressure_hull_diffraction"]).transpose("wave_direction", "hull_face").values
+    p1_hull = p1_hull + q1 @ dataset["pressure_hull_radiation"].sel(radiating_dof=dofs).transpose("radiating_dof", "hull_face").values
 
     # Diffracted and radiated fields, from the total source distribution for each wave direction
     # (the fields are linear in the sources).
@@ -340,14 +340,14 @@ def _first_order_fields_from_dataset(dataset, body, mesh, solver, q1):
         raise ValueError(f"The dataset contains missing (NaN) source distributions at omega={omega}, needed for the near field mean drift force.")
     gf_params = dict(free_surface=0.0, water_depth=water_depth, wavenumber=float(dataset.coords["wavenumber"]))
     grad_phi1_hull = solver._compute_potential_gradient_from_sources(mesh, body.mesh_including_lid, sources, **gf_params)
-    phi1_waterline = solver._compute_potential_from_sources(mesh.middle_edges_waterline, body.mesh_including_lid, sources, **gf_params)
+    phi1_waterline = solver._compute_potential_from_sources(mesh.waterline_edges_centers, body.mesh_including_lid, sources, **gf_params)
     p1_waterline = 1j * omega * rho * phi1_waterline
 
     # Incident waves
     for i_dir, wave_direction in enumerate(dataset.coords["wave_direction"].values):
         problem = DiffractionProblem(body=body, wave_direction=wave_direction, omega=omega, rho=rho, g=g, water_depth=water_depth)
         grad_phi1_hull[i_dir] += airy_waves_velocity(mesh, problem)
-        p1_waterline[i_dir] += airy_waves_pressure(mesh.middle_edges_waterline, problem)
+        p1_waterline[i_dir] += airy_waves_pressure(mesh.waterline_edges_centers, problem)
 
     return Expansion.first_order(p1_hull), Expansion.first_order(grad_phi1_hull), Expansion.first_order(p1_waterline)
 
@@ -386,9 +386,9 @@ def _check_inputs_for_near_field(dataset, body, solver):
     if dataset.sizes["hull_face"] != body.mesh.nb_faces or (body.lid_mesh is not None and dataset.sizes["lid_face"] != body.lid_mesh.nb_faces):
         raise ValueError(f"The faces of the dataset do not match the mesh of {body}.")
     # With `mesh=True`, the dataset also stores the faces centers.
-    if "mesh_faces_center" in dataset and not np.allclose(dataset["mesh_faces_center"].values, body.mesh.faces_centers):
+    if "mesh_hull_faces_centers" in dataset and not np.allclose(dataset["mesh_hull_faces_centers"].values, body.mesh.faces_centers):
         raise ValueError(f"The faces of the dataset do not match the mesh of {body}.")
-    if "lid_mesh_faces_center" in dataset and not np.allclose(dataset["lid_mesh_faces_center"].values, body.lid_mesh.faces_centers):
+    if "mesh_lid_faces_centers" in dataset and not np.allclose(dataset["mesh_lid_faces_centers"].values, body.lid_mesh.faces_centers):
         raise ValueError(f"The faces of the lid of the dataset do not match the lid mesh of {body}.")
     # Only the Green function matters to evaluate the potential from the source distributions.
     green_function = getattr(solver.engine, "green_function", None)
@@ -494,17 +494,17 @@ def _near_field_output_dataset(rao, freq_type, body, mesh, outputs_per_freq, out
             }
         output["pressure_waterline_total"] = xr.DataArray(
                 pressure_waterline,
-                dims=[freq_type, "wave_direction", "waterline_segment"],
+                dims=[freq_type, "wave_direction", "waterline_edge"],
                 coords=waterline_coords,
                  )
         output["relative_elevation_waterline"] = xr.DataArray(
                 relative_elevation_waterline,
-                dims=[freq_type, "wave_direction", "waterline_segment"],
+                dims=[freq_type, "wave_direction", "waterline_edge"],
                 coords=waterline_coords,
                  )
-        output["mesh_waterline"] = xr.DataArray(
+        output["mesh_waterline_vertices"] = xr.DataArray(
                 mesh.vertices[mesh.edges_waterline, :],
-                dims=["waterline_segment", "vertices_of_segment", "space_coordinate"],
+                dims=["waterline_edge", "vertices_of_edge", "space_coordinate"],
                 )
 
     return output

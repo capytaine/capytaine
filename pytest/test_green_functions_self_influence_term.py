@@ -84,7 +84,7 @@ def test_self_influence_term_is_the_limit_from_the_side_of_the_normal():
 
 def test_potential_finite_at_middle_of_edges():
     mesh = helpers.small_sphere_mesh()
-    S, _ = helpers.green_function().evaluate(mesh.middle_edges_waterline, mesh, wavenumber=1.0)
+    S, _ = helpers.green_function().evaluate(mesh.waterline_edges_centers, mesh, wavenumber=1.0)
     assert np.all(np.isfinite(S))
 
 
