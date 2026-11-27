@@ -324,3 +324,35 @@ def test_hydrostatics_with_global_dofs():
     all_bodies.add_translation_dof(name="Surge")
     all_bodies.compute_rigid_body_inertia()
     all_bodies.compute_hydrostatic_stiffness()
+
+
+def test_immersed_part_of_multibody_forwards_its_arguments():
+    mesh = cpt.mesh_sphere(radius=1.0, center=(0.0, 0.0, -0.5), resolution=(8, 8))
+    body_1 = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs(), name="body_1")
+    body_2 = body_1.translated_x(5.0, name="body_2")
+    multi = Multibody([body_1, body_2], name="both")
+
+    immersed = multi.immersed_part(free_surface=-0.5)
+    assert immersed.name == "both"
+    assert np.all(immersed.mesh.faces_centers[:, 2] <= -0.5)
+    for b, b_ref in zip(immersed.bodies, [body_1, body_2]):
+        assert b.mesh.nb_faces == b_ref.immersed_part(free_surface=-0.5).mesh.nb_faces
+
+    immersed = multi.immersed_part(water_depth=1.0, name="other_name")
+    assert immersed.name == "other_name"
+    assert np.all(immersed.mesh.faces_centers[:, 2] >= -1.0)
+
+
+def test_rigid_body_inertia_of_multibody_with_keyword_rho(caplog):
+    body_1 = helpers.small_sphere_body("rigid", name="body_1")
+    body_1.center_of_mass = (0.0, 0.0, 0.0)
+    body_2 = body_1.translated_x(5.0, name="body_2")
+    multi = Multibody([body_1, body_2])
+
+    reference = multi.compute_rigid_body_inertia(rho=1025.0)
+    with caplog.at_level("WARNING"):
+        positional = multi.compute_rigid_body_inertia(1025.0)  # Deprecated
+    assert "Deprecation warning" in caplog.text
+    np.testing.assert_allclose(positional.values, reference.values)
+    with pytest.raises(NotImplementedError):
+        multi.compute_rigid_body_inertia(output_type="rigid_dofs")

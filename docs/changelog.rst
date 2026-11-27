@@ -111,6 +111,13 @@ Bug fixes
 
 * Fix wrong inertia matrix for non-neutrally buoyant bodies (when ``mass`` is manually specified by the user) (:issue:`992`, :pull:`994`).
 
+* :meth:`~capytaine.meshes.abstract_meshes.AbstractMesh.immersed_part` ignored its ``free_surface`` argument and always clipped the mesh at :math:`z=0`.
+
+* :meth:`~capytaine.bodies.multibodies.Multibody.immersed_part` ignored all its arguments (``free_surface``, ``water_depth``, ``name``): they are now forwarded to the component bodies.
+
+* :meth:`~capytaine.bodies.multibodies.Multibody.compute_rigid_body_inertia` now takes ``rho`` as a keyword-only argument, as :meth:`~capytaine.bodies.bodies.FloatingBody.compute_rigid_body_inertia` does (passing it as a positional argument is deprecated).
+  Its ``output_type`` argument is accepted but only ``"body_dofs"`` is supported for a Multibody.
+
 Internals
 ~~~~~~~~~
 

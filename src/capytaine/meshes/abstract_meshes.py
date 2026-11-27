@@ -423,7 +423,10 @@ class AbstractMesh(SurfaceIntegralsMixin, ABC):
         if (free_surface - water_depth <= self.z_span[0]
             and self.z_span[1] <= free_surface):  # Already clipped
             return self  # Shortcut for performance
-        clipped = self.clipped(origin=(0, 0, 0), normal=(0, 0, 1))
+        if free_surface < np.inf:
+            clipped = self.clipped(origin=(0, 0, free_surface), normal=(0, 0, 1))
+        else:
+            clipped = self
         if water_depth < np.inf:
             clipped = clipped.clipped(origin=(0, 0, free_surface-water_depth), normal=(0, 0, -1))
         return clipped
