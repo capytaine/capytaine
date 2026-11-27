@@ -102,14 +102,21 @@ Bug fixes
 
 * Fix a stutter in the looping animations of :class:`~capytaine.ui.vedo_animations.Animation`: the last frame was identical to the first one. (:pull:`989`)
 
-* The self-influence term of the double layer operators is now added wherever a collocation point lies on a face of the source mesh, with the normal of that face, instead of on the diagonal of the matrix, assuming that the first faces of both meshes are the same.
-  In particular, velocities on the hull computed at an array of points or on a sub-mesh are now the limit on the fluid side, as they already were when passing the mesh itself.
-  The term was also missing when computing the value at field points without a free surface. (:pull:`951`)
-  Faces on the sea bottom (with the default finite depth Green function) now get the coefficient 1, like faces on the free surface, instead of 1/2.
-  A lid slightly below the free surface (closer than ``5e-5`` times the radius of its faces) now also gets the coefficient 1 instead of 1/2, such that the coefficient varies continuously with the depth of the lid.
-  Faces on the free surface are not supported by the legacy finite depth method (``finite_depth_method="legacy"``): they now get the coefficient 1/2 instead of 1.
-  Non-planar quadrilateral faces (which are not officially supported) now get a coefficient slightly different from 1/2, consistent with the limit from the side of the normal.
-  For faces on the free surface (such as lids), the self-influence of the wave part is only computed at the center of the face: the velocity cannot be reconstructed at other points of these faces (see :doc:`user_manual/post_pro`). (:pull:`983`)
+* The self-influence term of the double layer operators is now added wherever a collocation point lies on a face of the source mesh instead of on the diagonal of the matrix. (:pull:`983`)
+
+   * In particular, velocities on the hull computed at an array of points or on a sub-mesh are now the limit on the fluid side, as they already were when passing the mesh itself.
+
+   * The term was also missing when computing the value at field points without a free surface. (:pull:`951`)
+
+   * Faces on the sea bottom (with the default finite depth Green function) now get the coefficient 1, like faces on the free surface, instead of 1/2.
+
+   * A lid slightly below the free surface (closer than ``5e-5`` times the radius of its faces) now also gets the coefficient 1 instead of 1/2, such that the coefficient varies continuously with the depth of the lid.
+
+   * Faces on the free surface are not supported by the legacy finite depth method (``finite_depth_method="legacy"``): they now get the coefficient 1/2 instead of 1.
+
+   * Non-planar quadrilateral faces (which are not officially supported) now get a coefficient slightly different from 1/2, consistent with the limit from the side of the normal.
+
+   * For faces on the free surface (such as lids), the self-influence of the wave part is only computed at the center of the face: the velocity cannot be reconstructed at other points of these faces (see :doc:`user_manual/post_pro`).
 
 * At infinite frequency, ``Delhommeau(finite_depth_method="legacy", gf_singularities="high_freq")`` now uses the high_freq variant of the Green function, as the other settings do, instead of the low_freq one, which was giving wrong results at this frequency.
   Unsupported combinations of frequency and ``gf_singularities`` now raise a ``NotImplementedError`` instead of returning wrong results. (:pull:`983`)
@@ -118,9 +125,10 @@ Bug fixes
 
 * :meth:`~capytaine.meshes.abstract_meshes.AbstractMesh.immersed_part` ignored its ``free_surface`` argument and always clipped the mesh at :math:`z=0`. (:pull:`1001`)
 
-* :meth:`~capytaine.bodies.multibodies.Multibody.immersed_part` ignored all its arguments (``free_surface``, ``water_depth``, ``name``): they are now forwarded to the component bodies. (:pull:`1001`)
+* ``Multibody``.:meth:`~capytaine.bodies.multibodies.Multibody.immersed_part` ignored all its arguments (``free_surface``, ``water_depth``, ``name``): they are now forwarded to the component bodies. (:pull:`1001`)
 
-* :meth:`~capytaine.bodies.multibodies.Multibody.compute_rigid_body_inertia` now takes ``rho`` as a keyword-only argument, as :meth:`~capytaine.bodies.bodies.FloatingBody.compute_rigid_body_inertia` does (passing it as a positional argument is deprecated).
+* ``Multibody.``:meth:`~capytaine.bodies.multibodies.Multibody.compute_rigid_body_inertia` now takes ``rho`` as a keyword-only argument,
+  as ``FloatingBody.``:meth:`~capytaine.bodies.bodies.FloatingBody.compute_rigid_body_inertia` does (passing it as a positional argument is deprecated).
   Its ``output_type`` argument is accepted but only ``"body_dofs"`` is supported for a Multibody. (:pull:`1001`)
 
 Internals
